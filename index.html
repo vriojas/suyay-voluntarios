@@ -11,6 +11,9 @@
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://script.google.com">
+<link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Merriweather:ital@0;1&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{--azul:#112EA7;--naranja:#E34B14;--amarillo:#F2D13C;--crema:#F4F4EE;--lila:#C79BF2;--celeste:#A6E9F5;--tinta:#2A2A3A;--gris:#8A8A98;--r:22px}
@@ -84,6 +87,11 @@ details{margin-top:12px}summary{cursor:pointer;font-weight:600;color:var(--azul)
 .estado{font-size:12px;font-weight:700;padding:3px 9px;border-radius:12px;text-transform:uppercase;letter-spacing:.3px}
 .estado.activa{background:#DDF6E4;color:#1B7A3A}.estado.borrador{background:#FFF4C2;color:#8A6D00}.estado.cancelada{background:#F3E0DE;color:#A23B2E}
 .persona{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--crema);gap:10px}
+.redes{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin:14px 0 4px}
+.redes a{display:flex;align-items:center;gap:6px;background:#fff;color:var(--azul);text-decoration:none;font-weight:600;font-size:14px;padding:9px 14px;border-radius:30px;box-shadow:0 2px 0 rgba(17,46,167,.06)}
+.card .redes a{background:var(--crema)}
+.giro{width:34px;height:34px;margin:0 auto 12px;border:4px solid #E2E2EA;border-top-color:var(--naranja);border-radius:50%;animation:gira .8s linear infinite}
+@keyframes gira{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
@@ -96,6 +104,7 @@ details{margin-top:12px}summary{cursor:pointer;font-weight:600;color:var(--azul)
 
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbx5H9fVjzzcrTcz8IMDBQuxsgT2-oitH7SeVqikbZocWrbhTp62loXrc1LUqwaFJikc/exec';
+const TIKTOK_URL = 'https://www.tiktok.com/@suyay.gl';
 const RUTA_INICIAL = new URLSearchParams(location.search).get('r') || '';
 const APP_URL = location.origin + location.pathname;
 
@@ -154,7 +163,7 @@ async function api(action, datos={}){
   }catch(e){ throw new Error('Sin conexión, intenta de nuevo.') }
   if(!j.ok){
     if(j.error==='ADMIN_SESION'){ adminToken=null; try{sessionStorage.removeItem('suyay_admin')}catch(e){} location.hash='#coordinacion'; throw new Error('Tu sesión de coordinación expiró. Ingresa la clave otra vez.'); }
-    if(j.error==='SESION'){ guardar('suyay_token',null); token=null; perfil=null; location.hash='#entrar'; throw new Error('Tu sesión expiró, vuelve a ingresar.'); }
+    if(j.error==='SESION'){ guardar('suyay_token',null); guardar('suyay_cache',null); token=null; perfil=null; location.hash='#entrar'; throw new Error('Tu sesión expiró, vuelve a ingresar.'); }
     throw new Error(j.error);
   }
   return j;
@@ -169,38 +178,128 @@ function nav(){
   $('#nav').innerHTML=(token&&actual!=='#coordinacion')?items.map(([h,i,t])=>`<a href="${h}" class="${actual===h||(h==='#calendario'&&actual==='#actividad')?'on':''}"><span>${i}</span>${t}</a>`).join(''):'';
 }
 
-async function cargarPerfil(forzar){ if(token&&(!perfil||forzar)) perfil=await api('perfil'); return perfil }
-async function cargarActividades(forzar){ if(!actividades||forzar){const r=await api('actividades');actividades=r.actividades;hoyISO=r.hoy} return actividades }
+let syncEnCurso=null, ultimaSync=0;
+(function(){try{const c=JSON.parse(leer('suyay_cache')||'null');if(c){actividades=c.actividades||null;hoyISO=null;if(c.token&&c.token===token)perfil=c.perfil||null}}catch(e){}})();
+async function sincronizar(){
+  const r=await api('inicio');
+  actividades=r.actividades;hoyISO=r.hoy;if(token)perfil=r.perfil||null;ultimaSync=Date.now();
+  guardar('suyay_cache',JSON.stringify({token:token||null,perfil:token?perfil:null,actividades}));
+  return r;
+}
+function refrescar(){ if(!syncEnCurso) syncEnCurso=sincronizar().finally(()=>{syncEnCurso=null}); return syncEnCurso }
+function refrescarYRepintar(){
+  if(syncEnCurso||Date.now()-ultimaSync<15000) return;
+  const firma=JSON.stringify([perfil,actividades]), ruta=location.hash;
+  refrescar().then(()=>{
+    const pasiva=/^#(inicio|calendario|insignias|certificados|actividad)/.test(location.hash);
+    const escribiendo=document.activeElement&&/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName);
+    if(location.hash===ruta&&pasiva&&!escribiendo&&JSON.stringify([perfil,actividades])!==firma) router(true);
+  }).catch(()=>{});
+}
+async function cargarPerfil(forzar){
+  if(!token) return null;
+  if(perfil){ if(forzar) refrescarYRepintar(); return perfil }
+  await refrescar(); return perfil;
+}
+async function cargarActividades(forzar){
+  if(actividades){ if(forzar) refrescarYRepintar(); return actividades }
+  await refrescar(); return actividades;
+}
 
-async function router(){
+async function router(silencioso){
   const [ruta,param]=location.hash.slice(1).split('/');
-  nav(); window.scrollTo(0,0);
-  const publicas=['entrar','registro','calendario','actividad','coordinacion'];
+  nav(); if(silencioso!==true) window.scrollTo(0,0);
+  const publicas=['entrar','registro','olvide','calendario','actividad','coordinacion'];
   if(!token && !publicas.includes(ruta)){ location.hash='#entrar'; return }
-  $('#app').innerHTML='<div class="cargando">Cargando…</div>';
+  if(silencioso!==true) $('#app').innerHTML='<div class="cargando"><div class="giro"></div>Cargando…</div>';
   try{
-    const vistas={coordinacion:vCoordinacion,inicio:vInicio,entrar:vEntrar,registro:vRegistro,calendario:vCalendario,actividad:vActividad,insignias:vInsignias,certificados:vCertificados,perfil:vPerfil,feedback:vFeedback};
+    const vistas={olvide:vOlvide,coordinacion:vCoordinacion,inicio:vInicio,entrar:vEntrar,registro:vRegistro,calendario:vCalendario,actividad:vActividad,insignias:vInsignias,certificados:vCertificados,perfil:vPerfil,feedback:vFeedback};
     await (vistas[ruta]||vInicio)(param);
   }catch(e){ $('#app').innerHTML=`<div class="card"><h3>Ups</h3><p>${esc(e.message)}</p><button class="btn azul" onclick="router()">Reintentar</button></div>` }
 }
 window.addEventListener('hashchange',router);
 
+const REDES=[
+  ['Instagram','https://www.instagram.com/suyay.gl/','<path d="M7 2h10a5 5 0 0 1 5 5v10a5 5 0 0 1-5 5H7a5 5 0 0 1-5-5V7a5 5 0 0 1 5-5zm5 5.5a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9zm0 2a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5zM17.5 5.5a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"/>'],
+  ['LinkedIn','https://www.linkedin.com/company/suyay-peru/','<path d="M4 3a2 2 0 1 1 0 4 2 2 0 0 1 0-4zM2.5 8.5h3V21h-3zM9 8.5h2.9v1.7h.1c.4-.8 1.4-1.9 3.2-1.9 3.4 0 4 2.2 4 5.1V21h-3v-6.8c0-1.6 0-3.7-2.3-3.7s-2.6 1.8-2.6 3.6V21H9z"/>'],
+  ['TikTok',TIKTOK_URL,'<path d="M16.5 2c.3 2.4 1.7 4 4 4.2v3.2c-1.5.1-2.9-.4-4-1.2v6.6c0 3.6-2.7 6.2-6.1 6.2A6 6 0 0 1 4.3 15c0-3.6 3-6.3 6.7-5.9v3.4c-1.7-.4-3.3.8-3.3 2.5 0 1.5 1.2 2.6 2.7 2.6s2.7-1.1 2.7-2.9V2z"/>']
+].filter(r=>r[1]);
+function redesHTML(){
+  return `<div class="redes">${REDES.map(([n,u,p])=>`<a href="${u}" target="_blank" rel="noopener" aria-label="${n}"><svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">${p}</svg><span>${n}</span></a>`).join('')}</div>`;
+}
+
 function vEntrar(){
   if(token){location.hash='#inicio';return}
   $('#app').innerHTML=`
-  <div class="card azul"><h2>¡Hola, Suyi! 👋</h2><p>Ingresa con tu DNI y tu fecha de nacimiento.</p></div>
-  <div class="card">
-    <label>DNI</label><input id="dni" inputmode="numeric" maxlength="8" autocomplete="off">
-    <label>Fecha de nacimiento</label><input id="nac" type="date">
-    <button class="btn primario" id="go">Entrar</button>
-  </div>
+  <div class="card azul"><h2>¡Hola, Suyi! 👋</h2><p>Ingresa con tu DNI y tu contraseña.</p></div>
+  <form class="card" id="f" autocomplete="on">
+    <label for="dni">DNI</label><input id="dni" name="username" inputmode="numeric" maxlength="8" autocomplete="username">
+    <label for="clave">Contraseña</label><input id="clave" name="password" type="password" autocomplete="current-password">
+    <button class="btn primario" id="go" type="submit">Entrar</button>
+    <p style="text-align:center;margin:12px 0 0"><a href="#olvide">¿Olvidaste tu contraseña?</a></p>
+  </form>
   <div class="card"><h3>¿Es tu primera vez?</h3><p class="muted">Regístrate una sola vez y listo.</p><a class="btn borde" href="#registro">Crear mi cuenta</a></div>
   <p style="text-align:center"><a href="#calendario">Ver calendario de actividades →</a></p>
-  <p style="text-align:center;margin-top:28px"><a href="#coordinacion" class="muted">Acceso coordinación</a></p>`;
-  $('#go').onclick=async e=>{
-    e.target.disabled=true;
-    try{const r=await api('login',{dni:$('#dni').value.trim(),nacimiento:$('#nac').value});token=r.token;guardar('suyay_token',token);location.hash='#inicio'}
-    catch(err){toast(err.message);e.target.disabled=false}
+  ${redesHTML()}
+  <p style="text-align:center;margin-top:18px"><a href="#coordinacion" class="muted">Acceso coordinación</a></p>`;
+  $('#f').onsubmit=async e=>{
+    e.preventDefault();const b=$('#go');b.disabled=true;
+    const dni=$('#dni').value.trim();
+    try{const r=await api('login',{dni,clave:$('#clave').value});token=r.token;guardar('suyay_token',token);location.hash='#inicio'}
+    catch(err){
+      if(err.message==='SIN_CLAVE'){vCrearClave(dni);return}
+      toast(err.message);b.disabled=false}
+  };
+}
+
+function vCrearClave(dni){
+  $('#app').innerHTML=`
+  <div class="card amarillo"><h2>Crea tu contraseña 🔐</h2><p style="margin:6px 0 0">Ahora la app usa contraseña. Confirma tu fecha de nacimiento una única vez y elige una contraseña.</p></div>
+  <form class="card" id="f" autocomplete="on">
+    <label>DNI</label><input id="dni" name="username" autocomplete="username" inputmode="numeric" maxlength="8" value="${esc(dni||'')}">
+    <label>Fecha de nacimiento</label><input id="nac" type="date">
+    <label>Nueva contraseña (mínimo 8 caracteres)</label><input id="c1" name="new-password" type="password" autocomplete="new-password">
+    <label>Repite la contraseña</label><input id="c2" type="password" autocomplete="new-password">
+    <button class="btn primario" id="go" type="submit">Guardar y entrar</button>
+  </form>
+  <p style="text-align:center"><a href="#entrar">‹ Volver</a></p>`;
+  $('#f').onsubmit=async e=>{
+    e.preventDefault();
+    if($('#c1').value!==$('#c2').value){toast('Las contraseñas no coinciden.');return}
+    const b=$('#go');b.disabled=true;
+    try{const r=await api('crearClave',{dni:$('#dni').value.trim(),nacimiento:$('#nac').value,clave:$('#c1').value});token=r.token;guardar('suyay_token',token);toast('¡Listo! Tu celular puede guardar la contraseña para entrar con Face ID o huella.');location.hash='#inicio'}
+    catch(err){toast(err.message);b.disabled=false}
+  };
+}
+
+function vOlvide(){
+  $('#app').innerHTML=`
+  <div class="card azul"><h2>¿Olvidaste tu contraseña?</h2><p style="margin:6px 0 0">Te enviaremos un código a tu correo para crear una nueva.</p></div>
+  <form class="card" id="f1">
+    <label>DNI</label><input id="dni" inputmode="numeric" maxlength="8" autocomplete="username">
+    <button class="btn primario" id="go1" type="submit">Enviarme el código</button>
+  </form>
+  <form class="card" id="f2" style="display:none" autocomplete="on">
+    <p id="msg" style="margin-top:0"></p>
+    <label>Código de 6 dígitos</label><input id="cod" inputmode="numeric" maxlength="6" autocomplete="one-time-code">
+    <label>Nueva contraseña (mínimo 8 caracteres)</label><input id="c1" type="password" autocomplete="new-password">
+    <label>Repite la contraseña</label><input id="c2" type="password" autocomplete="new-password">
+    <button class="btn primario" id="go2" type="submit">Guardar y entrar</button>
+  </form>
+  <p style="text-align:center"><a href="#entrar">‹ Volver</a></p>`;
+  $('#f1').onsubmit=async e=>{
+    e.preventDefault();const b=$('#go1');b.disabled=true;
+    try{const r=await api('olvideClave',{dni:$('#dni').value.trim()});
+      $('#msg').textContent=r.correo?`Te enviamos un código a ${r.correo}. Revisa también la carpeta de spam.`:'Si ese DNI está registrado, te llegará un código a tu correo.';
+      $('#f2').style.display='block';$('#cod').focus()}
+    catch(err){toast(err.message)} b.disabled=false;
+  };
+  $('#f2').onsubmit=async e=>{
+    e.preventDefault();
+    if($('#c1').value!==$('#c2').value){toast('Las contraseñas no coinciden.');return}
+    const b=$('#go2');b.disabled=true;
+    try{const r=await api('restablecerClave',{dni:$('#dni').value.trim(),codigo:$('#cod').value.trim(),clave:$('#c1').value});token=r.token;guardar('suyay_token',token);toast('¡Contraseña actualizada! 🔐');location.hash='#inicio'}
+    catch(err){toast(err.message);b.disabled=false}
   };
 }
 
@@ -218,13 +317,16 @@ function vRegistro(){
     <label>¿Desde cuándo eres parte de Suyay?</label>
     <div class="fila"><select id="mes">${MESES.map((m,i)=>`<option value="${i+1}">${m}</option>`).join('')}</select>
     <select id="anio">${Array.from({length:anio-2021},(_,i)=>anio-i).map(a=>`<option>${a}</option>`).join('')}</select></div>
-    <p class="muted" style="font-size:12px">Tus datos se usan solo para tu registro de voluntariado en Suyay Global Impact.</p>
+    <label>Crea una contraseña (mínimo 8 caracteres)</label><input id="clave1" type="password" autocomplete="new-password">
+    <label>Repite la contraseña</label><input id="clave2" type="password" autocomplete="new-password">
+    <p class="muted" style="font-size:12px">Con tu DNI y esta contraseña entrarás a la app. Tu celular puede guardarla para entrar con Face ID o huella. Tus datos se usan solo para tu registro de voluntariado en Suyay Global Impact.</p>
     <button class="btn primario" id="go">Registrarme</button>
   </div>`;
   $('#mes').value=new Date().getMonth()+1;
   $('#go').onclick=async e=>{
+    if($('#clave1').value!==$('#clave2').value){toast('Las contraseñas no coinciden.');return}
     e.target.disabled=true;
-    const datos={nombre:$('#nombre').value,dni:$('#dni').value.trim(),celular:$('#celular').value,correo:$('#correo').value.trim(),universidad:$('#universidad').value,nacimiento:$('#nacimiento').value,ingreso_mes:$('#mes').value,ingreso_anio:$('#anio').value};
+    const datos={clave:$('#clave1').value,nombre:$('#nombre').value,dni:$('#dni').value.trim(),celular:$('#celular').value,correo:$('#correo').value.trim(),universidad:$('#universidad').value,nacimiento:$('#nacimiento').value,ingreso_mes:$('#mes').value,ingreso_anio:$('#anio').value};
     try{const r=await api('registrar',{datos});token=r.token;guardar('suyay_token',token);toast('¡Ya eres parte de la app! 🎉');location.hash='#inicio'}
     catch(err){toast(err.message);e.target.disabled=false}
   };
@@ -426,8 +528,9 @@ async function vPerfil(){
   <p class="muted" style="font-size:12px">¿Algún dato está mal? Escríbenos a comunicacion.suyay@gmail.com.</p></div>
   <div class="card amarillo"><h3>📲 Tenla como app</h3><p style="margin:6px 0 0">${ios?'En Safari toca el botón <b>Compartir</b> y luego <b>Agregar a pantalla de inicio</b>.':'En Chrome toca los <b>tres puntitos</b> y luego <b>Agregar a pantalla principal</b> o <b>Instalar app</b>.'}</p></div>
   <button class="btn borde" id="salir">Cerrar sesión</button>
+  <div class="card"><h3>Síguenos 💛</h3>${redesHTML()}</div>
   <p style="text-align:center;margin-top:22px"><a href="#coordinacion" class="muted">Acceso coordinación</a></p>`;
-  $('#salir').onclick=()=>{guardar('suyay_token',null);token=null;perfil=null;location.hash='#entrar'};
+  $('#salir').onclick=()=>{guardar('suyay_token',null);guardar('suyay_cache',null);token=null;perfil=null;location.hash='#entrar'};
 }
 
 /* ---------- Panel de coordinación ---------- */
@@ -508,7 +611,9 @@ function vAdminForm(a){
     <div class="fila"><div><label>Hora de inicio *</label><input id="f_hi" type="time" value="${v('hora_inicio')}"></div>
     <div><label>Hora de fin *</label><input id="f_hf" type="time" value="${v('hora_fin')}"></div></div>
     <label>Lugar (dirección completa) *</label><input id="f_lugar" value="${v('lugar')}" placeholder="Ej. Av. La Marina 2000, San Miguel, Lima">
-    <p class="ayuda">Escribe calle, número, distrito y "Lima". El sistema lo ubica en el mapa para validar la asistencia.</p>
+    <p class="ayuda">Escribe el nombre del lugar o calle, número y distrito. El sistema lo ubica solo en el mapa.</p>
+    <button class="btn borde mini" type="button" id="aqui">📍 Estoy en el lugar: usar mi ubicación</button>
+    <p class="ayuda" id="aquiMsg">Si estás en el lugar de la actividad, toca este botón y se guarda el punto exacto.</p>
   </div>
   <div class="card">
     <label>¿Qué se realizará? *</label><textarea id="f_resumen" rows="4" placeholder="Describe la actividad y su objetivo">${v('resumen')}</textarea>
@@ -533,6 +638,12 @@ function vAdminForm(a){
   <p class="ayuda" style="text-align:center">Borrador: solo se ve aquí. Publicada: aparece al instante en el calendario de la app.</p>`;
   const autoHoras=()=>{const hi=$('#f_hi').value,hf=$('#f_hf').value;if(hi&&hf&&!$('#f_horas').value){const [a1,b1]=hi.split(':').map(Number),[a2,b2]=hf.split(':').map(Number);const h=Math.round(((a2*60+b2)-(a1*60+b1))/30)/2;if(h>0)$('#f_horas').value=h}};
   $('#f_hi').onchange=autoHoras;$('#f_hf').onchange=autoHoras;
+  $('#aqui').onclick=()=>{
+    if(!navigator.geolocation){toast('Este celular no permite compartir ubicación.');return}
+    $('#aquiMsg').textContent='Buscando tu ubicación…';
+    navigator.geolocation.getCurrentPosition(p=>{const v=p.coords.latitude.toFixed(6)+', '+p.coords.longitude.toFixed(6);$('#f_coord').value=v;$('#f_coord').closest('details').open=true;$('#aquiMsg').textContent='✅ Ubicación guardada (precisión de unos '+Math.round(p.coords.accuracy)+' m). Toca Publicar para guardarla.'},
+      e=>{$('#aquiMsg').textContent=e.code===1?'Necesitamos tu permiso de ubicación. Actívalo en la configuración del navegador.':'No pudimos obtener tu ubicación. Intenta al aire libre.'},{enableHighAccuracy:true,timeout:20000,maximumAge:0});
+  };
   const enviar=async(estado,btn)=>{
     const datos={id:a.id||'',estado,titulo:$('#f_titulo').value,fecha:$('#f_fecha').value,hora_inicio:$('#f_hi').value,hora_fin:$('#f_hf').value,
       lugar:$('#f_lugar').value,resumen:$('#f_resumen').value,que_haran:$('#f_que').value,horas:$('#f_horas').value,cupos:$('#f_cupos').value,
