@@ -92,6 +92,9 @@ details{margin-top:12px}summary{cursor:pointer;font-weight:600;color:var(--azul)
 .card .redes a{background:var(--crema)}
 .giro{width:34px;height:34px;margin:0 auto 12px;border:4px solid #E2E2EA;border-top-color:var(--naranja);border-radius:50%;animation:gira .8s linear infinite}
 @keyframes gira{to{transform:rotate(360deg)}}
+.estado.reprogramada{background:#E5E9FA;color:var(--azul)}.estado.finalizada{background:#ECECF1;color:#5A5A6A}
+button.chip{border:0;cursor:pointer;font-family:inherit}
+.faq{padding:14px 18px;margin-bottom:8px}.faq summary{font-weight:600;color:var(--azul);list-style:none;cursor:pointer}.faq summary::after{content:' +';float:right;color:var(--naranja)}.faq[open] summary::after{content:' –'}.faq p{margin:10px 0 0}
 </style>
 </head>
 <body>
@@ -209,11 +212,11 @@ async function cargarActividades(forzar){
 async function router(silencioso){
   const [ruta,param]=location.hash.slice(1).split('/');
   nav(); if(silencioso!==true) window.scrollTo(0,0);
-  const publicas=['entrar','registro','olvide','calendario','actividad','coordinacion'];
+  const publicas=['ayuda','entrar','registro','olvide','calendario','actividad','coordinacion'];
   if(!token && !publicas.includes(ruta)){ location.hash='#entrar'; return }
   if(silencioso!==true) $('#app').innerHTML='<div class="cargando"><div class="giro"></div>Cargando…</div>';
   try{
-    const vistas={olvide:vOlvide,coordinacion:vCoordinacion,inicio:vInicio,entrar:vEntrar,registro:vRegistro,calendario:vCalendario,actividad:vActividad,insignias:vInsignias,certificados:vCertificados,perfil:vPerfil,feedback:vFeedback};
+    const vistas={ayuda:vAyuda,olvide:vOlvide,coordinacion:vCoordinacion,inicio:vInicio,entrar:vEntrar,registro:vRegistro,calendario:vCalendario,actividad:vActividad,insignias:vInsignias,certificados:vCertificados,perfil:vPerfil,feedback:vFeedback};
     await (vistas[ruta]||vInicio)(param);
   }catch(e){ $('#app').innerHTML=`<div class="card"><h3>Ups</h3><p>${esc(e.message)}</p><button class="btn azul" onclick="router()">Reintentar</button></div>` }
 }
@@ -239,7 +242,7 @@ function vEntrar(){
     <p style="text-align:center;margin:12px 0 0"><a href="#olvide">¿Olvidaste tu contraseña?</a></p>
   </form>
   <div class="card"><h3>¿Es tu primera vez?</h3><p class="muted">Regístrate una sola vez y listo.</p><a class="btn borde" href="#registro">Crear mi cuenta</a></div>
-  <p style="text-align:center"><a href="#calendario">Ver calendario de actividades →</a></p>
+  <p style="text-align:center"><a href="#calendario">Ver calendario de actividades →</a> · <a href="#ayuda">Preguntas frecuentes</a></p>
   ${redesHTML()}
   <p style="text-align:center;margin-top:18px"><a href="#coordinacion" class="muted">Acceso coordinación</a></p>`;
   $('#f').onsubmit=async e=>{
@@ -348,7 +351,7 @@ async function vInicio(){
   const sig=INSIGNIAS.find(i=>i.horas>p.horas);
   const prevH=sig?sig.horas-HITO:0;
   const pct=sig?Math.min(100,Math.round((p.horas-prevH)/HITO*100)):100;
-  const mias=acts.filter(a=>p.inscripciones.includes(a.id)&&a.fecha>=hoyLocal()).slice(0,3);
+  const mias=acts.filter(a=>(p.inscripciones.includes(a.id)||(p.porConfirmar||[]).includes(a.id))&&a.fecha>=hoyLocal()).slice(0,3);
   $('#app').innerHTML=`
   ${cumple?`<div class="card amarillo" style="text-align:center"><div style="font-size:46px">🎂🎉</div><h2>¡Feliz cumpleaños, ${esc(nombre)}!</h2><p>Toda la familia Suyay celebra contigo hoy. Gracias por encender tantas sonrisas.</p></div>`:''}
   <h1>Hola, ${esc(nombre)} 👋</h1><div class="garabato"></div>
@@ -359,6 +362,7 @@ async function vInicio(){
   </div>
   ${sig?`<div class="barra"><div style="width:${pct}%"></div></div><p class="muted" style="margin:0">Te faltan <b>${sig.horas-p.horas} h</b> para la insignia <b>${sig.nombre}</b> y tu certificado de ${sig.horas} horas.</p>`:'<p>¡Desbloqueaste todas las insignias! Eres leyenda 💛</p>'}
   </div>
+  ${tarjetasPorConfirmar(p)}${tarjetaPolitica(p)}
   ${p.feedbackPendiente.map(f=>`<a href="#feedback/${f.actividad_id}" style="text-decoration:none"><div class="card naranja"><h3>¿Cómo te fue en ${esc(f.titulo)}? 💬</h3><p style="margin:6px 0 0">Cuéntanos en 30 segundos →</p></div></a>`).join('')}
   <h2 style="margin:22px 0 10px">Tus próximas actividades</h2>
   ${mias.length?mias.map(tarjetaAct).join(''):'<div class="card"><p style="margin:0">Aún no te inscribes en ninguna. <a href="#calendario">Mira el calendario</a>.</p></div>'}`;
@@ -415,6 +419,7 @@ async function vActividad(id){
   await Promise.all([cargarActividades(),token?cargarPerfil(true):null]);
   const a=actividades.find(x=>x.id===id); if(!a) throw new Error('No encontramos esta actividad.');
   const inscrito=perfil&&perfil.inscripciones.includes(a.id);
+  const porConf=perfil&&(perfil.porConfirmar||[]).includes(a.id);
   const asistio=perfil&&perfil.asistencias.some(x=>x.actividad_id===a.id);
   const libres=a.cupos?a.cupos-a.inscritos:null, cerrada=a.cierre&&hoyLocal()>a.cierre, esHoy=a.fecha===hoyLocal();
   $('#app').innerHTML=`
@@ -433,7 +438,8 @@ async function vActividad(id){
   if(asistio) h+='<div class="card" style="text-align:center"><h3>✅ Asistencia registrada</h3><p class="muted" style="margin:4px 0 0">¡Gracias por estar!</p></div>';
   else if(esHoy) h+='<button class="btn primario" id="marcar">📍 Marcar mi asistencia</button>';
   if(esHoy) h+='<label class="btn borde" style="margin-top:10px">📸 Subir foto del grupo<input type="file" accept="image/'+'*" capture="environment" id="foto" hidden></label>';
-  if(inscrito){
+  if(porConf){h+=`<div class="card amarillo"><h3>🔔 Esta actividad cambió de fecha</h3><p style="margin:6px 0 0">¿Sigues pudiendo ir el ${fechaLarga(a.fecha)}?</p></div><button class="btn primario" id="conf">Sí, confirmo que iré</button><button class="btn borde" id="salir">Ya no podré ir</button>`}
+  else if(inscrito){
     if(a.whatsapp) h+=`<a class="btn verde" href="${esc(a.whatsapp)}" target="_blank">Entrar al grupo de WhatsApp</a>`;
     if(!esHoy&&a.fecha>hoyLocal()) h+='<button class="btn borde" id="salir">Ya no podré ir</button>';
   } else if(!cerrada&&a.fecha>=hoyLocal()&&(libres===null||libres>0)) h+='<button class="btn primario" id="inscribir">¡Me apunto! 🙌</button>';
@@ -441,7 +447,8 @@ async function vActividad(id){
   ac.innerHTML=h;
   const b=(s,f)=>{const el=$(s);if(el)el.onclick=f};
   b('#inscribir',async e=>{e.target.disabled=true;try{const r=await api('inscribir',{actividad_id:a.id});toast('¡Listo, estás inscrito! Únete al grupo de WhatsApp 💚');actividades=null;await vActividad(id)}catch(err){toast(err.message);e.target.disabled=false}});
-  b('#salir',async e=>{e.target.disabled=true;try{await api('desinscribir',{actividad_id:a.id});toast('Liberaste tu cupo. ¡Te esperamos en la próxima!');actividades=null;await vActividad(id)}catch(err){toast(err.message);e.target.disabled=false}});
+  b('#salir',()=>{if(!$('#baja'))formBaja(a,ac)});
+  b('#conf',async e=>{e.target.disabled=true;try{await api('confirmar',{actividad_id:a.id});perfil=null;actividades=null;toast('¡Gracias por confirmar! 💛');await vActividad(id)}catch(err){toast(err.message);e.target.disabled=false}});
   b('#marcar',e=>marcarAsistencia(a,e.target));
   const f=$('#foto'); if(f) f.onchange=()=>subirFoto(a,f.files[0]);
 }
@@ -494,8 +501,8 @@ async function vCertificados(){
   $('#app').innerHTML=`<h1>Mis certificados</h1><div class="garabato"></div>
   ${certs.length?certs.map(c=>{const ins=INSIGNIAS.filter(i=>i.horas<=c.horas).at(-1);return `<a href="${esc(c.url)}" target="_blank" style="text-decoration:none"><div class="card act"><img src="${ins.img}" style="width:62px"><div><h3>Certificado de ${c.horas} horas</h3><div class="muted">Emitido el ${fechaLarga(c.fecha)} · ${esc(c.codigo)}</div></div></div></a>`}).join('')
   :`<div class="card"><p style="margin:0">Tu primer certificado llega al cumplir <b>${HITO} horas</b>. ¡Vas por ${p.horas}! 💪</p></div>`}
-  <h2 style="margin:22px 0 10px">Mis participaciones</h2>
-  ${p.asistencias.length?`<div class="card">${[...p.asistencias].reverse().map(x=>`<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--crema)"><span><b>${esc(x.titulo)}</b><br><span class="muted">${fechaLarga(x.fecha)}</span></span><span class="chip">${x.horas} h</span></div>`).join('')}</div>`:'<div class="card"><p style="margin:0">Aquí aparecerán las actividades a las que asistas.</p></div>'}`;
+  <h2 style="margin:22px 0 10px">Mi historial</h2>
+  ${historialHTML(p.historial)}`;
 }
 
 async function vFeedback(id){
@@ -528,7 +535,8 @@ async function vPerfil(){
   <p class="muted" style="font-size:12px">¿Algún dato está mal? Escríbenos a comunicacion.suyay@gmail.com.</p></div>
   <div class="card amarillo"><h3>📲 Tenla como app</h3><p style="margin:6px 0 0">${ios?'En Safari toca el botón <b>Compartir</b> y luego <b>Agregar a pantalla de inicio</b>.':'En Chrome toca los <b>tres puntitos</b> y luego <b>Agregar a pantalla principal</b> o <b>Instalar app</b>.'}</p></div>
   <button class="btn borde" id="salir">Cerrar sesión</button>
-  <div class="card"><h3>Síguenos 💛</h3>${redesHTML()}</div>
+  <a class="btn azul" href="#ayuda">❓ Preguntas frecuentes</a>
+  <div class="card" style="margin-top:14px"><h3>Síguenos 💛</h3>${redesHTML()}</div>
   <p style="text-align:center;margin-top:22px"><a href="#coordinacion" class="muted">Acceso coordinación</a></p>`;
   $('#salir').onclick=()=>{guardar('suyay_token',null);guardar('suyay_cache',null);token=null;perfil=null;location.hash='#entrar'};
 }
@@ -536,11 +544,13 @@ async function vPerfil(){
 /* ---------- Panel de coordinación ---------- */
 let adminActs = null, adminHoy = null, adminFiltro = 'proximas';
 async function vCoordinacion(param){
-  if(!adminToken) return vAdminEntrar();
+  if(!adminToken && !(await vAdminEntrarCuenta())) return vAdminEntrar();
   const [modo,id]=String(param||'').split('-');
   if(modo==='nueva') return vAdminForm(null);
   if(modo==='editar'){ await adminCargar(); return vAdminForm(adminActs.find(a=>a.id===id)) }
   if(modo==='inscritos') return vAdminInscritos(id);
+  if(modo==='voluntarios') return vAdminVoluntarios();
+  if(modo==='vol') return vAdminVol(id);
   return vAdminLista();
 }
 async function adminCargar(){ const r=await api('adminListar'); adminActs=r.actividades; adminHoy=r.hoy; return adminActs }
@@ -561,15 +571,16 @@ async function vAdminLista(){
   await adminCargar();
   const hoy=adminHoy;
   const grupos={
-    proximas:['Próximas',a=>a.estado==='activa'&&a.fecha>=hoy],
+    proximas:['Próximas',a=>(a.estado==='activa'||a.estado==='reprogramada')&&a.fecha>=hoy],
     borradores:['Borradores',a=>a.estado==='borrador'],
-    pasadas:['Pasadas',a=>a.estado==='activa'&&a.fecha&&a.fecha<hoy],
+    pasadas:['Pasadas',a=>a.estado==='finalizada'||((a.estado==='activa'||a.estado==='reprogramada')&&a.fecha&&a.fecha<hoy)],
     canceladas:['Canceladas',a=>a.estado==='cancelada']
   };
   const lista=adminActs.filter(grupos[adminFiltro][1]);
   if(adminFiltro==='proximas') lista.reverse();
   $('#app').innerHTML=`
   <div style="display:flex;justify-content:space-between;align-items:center"><h1>Coordinación</h1><a href="#inicio" class="muted">Ver la app ›</a></div><div class="garabato"></div>
+  ${tabsAdmin('act')}
   <a class="btn primario" href="#coordinacion/nueva" style="margin-bottom:14px">＋ Nueva actividad</a>
   <div class="seg" id="filtro">${Object.entries(grupos).map(([k,[t]])=>`<button data-f="${k}" class="${adminFiltro===k?'on':''}">${t}</button>`).join('')}</div>
   ${lista.length?lista.map(tarjetaAdmin).join(''):'<div class="card"><p style="margin:0">No hay actividades aquí.</p></div>'}
@@ -592,7 +603,7 @@ function tarjetaAdmin(a){
   const d=a.fecha?new Date(a.fecha+'T12:00:00'):null;
   return `<div class="card"><div class="act" style="cursor:default">
     <div class="dia">${d?`<small>${DIAS[d.getDay()]}</small><b>${d.getDate()}</b><small>${MESES[d.getMonth()].slice(0,3)}</small>`:'<b>—</b>'}</div>
-    <div style="flex:1;min-width:0"><span class="estado ${a.estado}">${a.estado}</span><h3 style="margin-top:4px">${esc(a.titulo)}</h3>
+    <div style="flex:1;min-width:0"><span class="estado ${a.estado}">${ESTADO_ACT_TXT[a.estado]||a.estado}</span><h3 style="margin-top:4px">${esc(a.titulo)}</h3>
     <div class="muted">${a.hora_inicio||''}${a.hora_fin?' – '+a.hora_fin:''}${a.lugar?' · '+esc(a.lugar):''}</div>
     <div class="muted">${a.inscritos} inscrito(s)${a.cupos?' de '+a.cupos:''}${a.asistentes?' · '+a.asistentes+' asistieron':''}${a.lat===''&&a.lugar?' · <b style="color:#C0392B">sin ubicación</b>':''}</div></div></div>
     <div class="fila"><a class="btn borde mini" href="#coordinacion/editar-${a.id}">Editar</a><a class="btn borde mini" href="#coordinacion/inscritos-${a.id}">Inscritos</a></div></div>`;
@@ -604,7 +615,7 @@ function vAdminForm(a){
   $('#app').innerHTML=`
   <a href="#coordinacion">‹ Volver</a>
   <h1 style="margin-top:10px">${nueva?'Nueva actividad':'Editar actividad'}</h1><div class="garabato"></div>
-  ${!nueva?`<p><span class="estado ${a.estado}">${a.estado}</span></p>`:''}
+  ${!nueva?`<p><span class="estado ${a.estado}">${ESTADO_ACT_TXT[a.estado]||a.estado}</span></p>`:''}
   <div class="card">
     <label>Nombre de la actividad *</label><input id="f_titulo" value="${v('titulo')}" placeholder="Ej. Lectura de cuentos en la Casa Hogar">
     <label>Fecha *</label><input id="f_fecha" type="date" value="${v('fecha')}">
@@ -634,7 +645,8 @@ function vAdminForm(a){
   </div>
   <button class="btn primario" id="publicar">${a.estado==='activa'&&!nueva?'Guardar cambios':'Publicar en la app'}</button>
   <button class="btn borde" id="borrador">Guardar como borrador</button>
-  ${!nueva&&a.estado!=='cancelada'?'<button class="btn rojo" id="cancelar">Cancelar actividad</button>':''}
+  ${!nueva&&a.estado!=='cancelada'&&a.estado!=='borrador'?'<button class="btn borde" id="reprog">📅 Cambié fecha u hora: reprogramar y avisar</button>':''}
+  ${!nueva&&a.estado!=='cancelada'?'<button class="btn rojo" id="cancelar">Cancelar actividad…</button>':''}
   <p class="ayuda" style="text-align:center">Borrador: solo se ve aquí. Publicada: aparece al instante en el calendario de la app.</p>`;
   const autoHoras=()=>{const hi=$('#f_hi').value,hf=$('#f_hf').value;if(hi&&hf&&!$('#f_horas').value){const [a1,b1]=hi.split(':').map(Number),[a2,b2]=hf.split(':').map(Number);const h=Math.round(((a2*60+b2)-(a1*60+b1))/30)/2;if(h>0)$('#f_horas').value=h}};
   $('#f_hi').onchange=autoHoras;$('#f_hf').onchange=autoHoras;
@@ -654,31 +666,26 @@ function vAdminForm(a){
     try{
       const r=await api('adminGuardar',{datos});
       actividades=null;
-      vAdminResultado(r,estado,datos);
+      if(window.__trasGuardar){const f=window.__trasGuardar;window.__trasGuardar=null;f(r)}else vAdminResultado(r,estado,datos);
     }catch(err){toast(err.message,6000);btn.disabled=false}
   };
-  $('#publicar').onclick=e=>enviar('activa',e.target);
+  $('#publicar').onclick=e=>enviar(a.estado==='reprogramada'||a.estado==='finalizada'?a.estado:'activa',e.target);
   $('#borrador').onclick=e=>enviar('borrador',e.target);
-  const c=$('#cancelar');
-  if(c) c.onclick=async e=>{
-    if(!c.dataset.seguro){c.dataset.seguro='1';c.textContent='¿Segura? Toca otra vez para cancelarla';setTimeout(()=>{c.dataset.seguro='';c.textContent='Cancelar actividad'},5000);return}
-    c.disabled=true;
-    try{await api('adminEstado',{id:a.id,estado:'cancelada'});actividades=null;toast('Actividad cancelada. Ya no aparece en la app.');location.hash='#coordinacion'}
-    catch(err){toast(err.message);c.disabled=false}
-  };
+  const c=$('#cancelar'); if(c) c.onclick=()=>vAdminAviso('cancelar',a);
+  const rp=$('#reprog'); if(rp) rp.onclick=async()=>{window.__trasGuardar=r=>vAdminAviso('reprogramar',Object.assign({},a,{id:r.id,fecha:$('#f_fecha').value}));await enviar(a.estado==='activa'?'activa':a.estado,rp);if(!rp.disabled)window.__trasGuardar=null};
 }
 function vAdminResultado(r,estado,datos){
   const u=r.ubicacion;
   $('#app').innerHTML=`
-  <div class="card ${estado==='activa'?'azul':'amarillo'}" style="text-align:center"><div style="font-size:42px">${estado==='activa'?'🎉':'📝'}</div>
-    <h2>${estado==='activa'?'¡Publicada!':'Guardada como borrador'}</h2>
-    <p style="margin:6px 0 0">${estado==='activa'?'Ya aparece en el calendario de la app.':'Solo la ves tú desde Coordinación. Publícala cuando esté lista.'}</p></div>
+  <div class="card ${estado!=='borrador'?'azul':'amarillo'}" style="text-align:center"><div style="font-size:42px">${estado!=='borrador'?'🎉':'📝'}</div>
+    <h2>${estado!=='borrador'?'¡Publicada!':'Guardada como borrador'}</h2>
+    <p style="margin:6px 0 0">${estado!=='borrador'?'Ya aparece en el calendario de la app.':'Solo la ves tú desde Coordinación. Publícala cuando esté lista.'}</p></div>
   ${u?`<div class="card"><h3>📍 Revisa la ubicación</h3><p style="margin:6px 0 0">Los voluntarios solo podrán marcar asistencia cerca de este punto. Ábrelo y confirma que sea el lugar correcto.</p>
     <a class="btn azul" target="_blank" rel="noopener" href="https://www.google.com/maps?q=${u.lat},${u.lng}">Ver en Google Maps</a>
     <p class="ayuda">Si no es el lugar exacto, edita la actividad y pega las coordenadas en "Opciones avanzadas".</p></div>`:''}
   ${r.avisoUbicacion?`<div class="card naranja"><h3>⚠️ Falta la ubicación</h3><p style="margin:6px 0 0">${esc(r.avisoUbicacion)}</p></div>`:''}
   <a class="btn borde" href="#coordinacion/editar-${r.id}">Seguir editando</a>
-  ${estado==='activa'?`<a class="btn borde" href="#actividad/${r.id}">Verla como voluntario</a>`:''}
+  ${estado!=='borrador'?`<a class="btn borde" href="#actividad/${r.id}">Verla como voluntario</a>`:''}
   <a class="btn primario" href="#coordinacion">Volver a la lista</a>`;
 }
 async function vAdminInscritos(id){
@@ -695,6 +702,202 @@ async function vAdminInscritos(id){
   ${r.inscritos.length?'<button class="btn azul" id="copiar">Copiar lista de nombres</button>':''}
   <p class="ayuda">Estos datos son privados: úsalos solo para coordinar la actividad.</p>`;
   const b=$('#copiar'); if(b) b.onclick=()=>{navigator.clipboard.writeText(r.inscritos.map((p,i)=>`${i+1}. ${p.nombre}`).join('\n'));toast('Lista copiada')};
+}
+
+/* ---------- V5: política de asistencia (voluntario) ---------- */
+const RESULTADOS={asistio:['✅','Asistió','v'],injustificada:['❌','Falta','n'],justificada:['🟦','Justificada',''],emergencia:['🟦','Emergencia (justificada)',''],
+  por_revisar:['🟡','Por revisar','n'],inscrito:['📌','Inscrito/a',''],por_confirmar:['🔔','Por confirmar','n'],pendiente:['⏳','En proceso',''],baja:['↩️','Se dio de baja',''],cancelada:['🚫','Cancelada por Suyay','']};
+const ESTADO_ACT_TXT={activa:'programada',reprogramada:'reprogramada',finalizada:'finalizada',cancelada:'cancelada',borrador:'borrador'};
+function chipResultado(r){const x=RESULTADOS[r]||['','',''];return `<span class="chip ${x[2]}">${x[0]} ${x[1]}</span>`}
+function tarjetaPolitica(p){
+  const e=p.politica; if(!e) return '';
+  const pct=Math.min(100,Math.round(e.participaciones/e.meta*100)), falta=Math.max(0,e.meta-e.participaciones);
+  let aviso='';
+  if(e.participaciones>=e.meta) aviso='<p style="margin:8px 0 0">¡Cumpliste la meta de este trimestre! 🎉</p>';
+  else if(e.diasRestantes<=21) aviso=`<p style="margin:8px 0 0;color:var(--naranja);font-weight:600">⏰ Quedan ${e.diasRestantes} días para el cierre y te faltan ${falta}. <a href="#calendario">Inscríbete aquí</a>.</p>`;
+  else if(e.participaciones===0) aviso='<p style="margin:8px 0 0">Aún no participas este trimestre. <a href="#calendario">Mira el calendario</a> 💛</p>';
+  const faltas=e.faltasInjustificadas?`<div class="card ${e.faltasInjustificadas>=e.faltasMax-1?'naranja':''}"><h3>Tienes ${e.faltasInjustificadas} falta${e.faltasInjustificadas>1?'s':''} sin justificar este año</h3><p style="margin:6px 0 0">Al llegar a ${e.faltasMax}, coordinación revisa tu situación. Si no puedes ir a una actividad, date de baja desde la app con 24 h de anticipación.</p></div>`:'';
+  const revisar=e.porRevisar?`<div class="card"><p style="margin:0">🟡 Tienes ${e.porRevisar} baja${e.porRevisar>1?'s':''} de último momento <b>por revisar</b>. Si fue una emergencia, coordinación lo evaluará.</p></div>`:'';
+  return `<div class="card"><p class="muted" style="margin:0">Participaciones · ${e.trimestre}</p>
+    <div style="display:flex;align-items:baseline;gap:8px"><div class="big">${e.participaciones}</div><span class="muted">de ${e.meta}</span></div>
+    <div class="barra"><div style="width:${pct}%;background:var(--azul)"></div></div>${aviso}</div>${faltas}${revisar}`;
+}
+function tarjetasPorConfirmar(p){
+  return (p.porConfirmar||[]).map(id=>{const a=(actividades||[]).find(x=>x.id===id);if(!a)return '';
+    return `<a href="#actividad/${a.id}" style="text-decoration:none"><div class="card amarillo"><h3>🔔 ${esc(a.titulo)} cambió de fecha</h3><p style="margin:6px 0 0">Ahora es el ${fechaLarga(a.fecha)}. Toca para confirmar si podrás ir.</p></div></a>`}).join('');
+}
+function historialHTML(h){
+  if(!h||!h.length) return '<div class="card"><p style="margin:0">Aquí aparecerá tu historial de actividades.</p></div>';
+  return `<div class="card">${h.map(x=>`<div class="persona"><span><b>${esc(x.titulo)}</b><br><span class="muted">${x.fecha?fechaLarga(x.fecha):''}${x.horas?' · '+x.horas+' h':''}${x.motivo?' · '+esc(x.motivo):''}</span></span>${chipResultado(x.resultado)}</div>`).join('')}</div>`;
+}
+function formBaja(a,ac){
+  const horasAntes=(new Date(a.fecha+'T'+(a.hora_inicio||'00:00')+':00-05:00')-new Date())/36e5;
+  const conTiempo=horasAntes>=24;
+  ac.insertAdjacentHTML('beforeend',`<div class="card" id="baja"><h3>¿No podrás ir?</h3>
+    <p style="margin:6px 0 10px">${conTiempo?'Estás avisando con más de 24 horas: <b>no contará como falta</b>.':'Faltan menos de 24 horas: tu baja quedará <b>por revisar</b> y coordinación evaluará si fue una emergencia.'}</p>
+    <label>Cuéntanos el motivo</label><textarea id="motivo" rows="3" placeholder="${conTiempo?'Opcional':'Ej. emergencia familiar, salud…'}"></textarea>
+    <button class="btn primario" id="okBaja">Confirmar que no podré ir</button></div>`);
+  $('#baja').scrollIntoView({behavior:'smooth',block:'center'});
+  $('#okBaja').onclick=async e=>{
+    if(!conTiempo&&!$('#motivo').value.trim()){toast('Cuéntanos el motivo para que coordinación lo evalúe.');return}
+    e.target.disabled=true;
+    try{const r=await api('desinscribir',{actividad_id:a.id,motivo:$('#motivo').value});actividades=null;perfil=null;
+      toast(r.tipo==='justificada'?'Liberaste tu cupo. No cuenta como falta 💛':'Registramos tu baja. Coordinación la revisará.',5000);await vActividad(a.id)}
+    catch(err){toast(err.message);e.target.disabled=false}
+  };
+}
+
+/* ---------- V5: base de voluntarios (coordinación) ---------- */
+let adminVols=null, adminVolFiltro='todos', adminVolBusca='';
+const RIESGO={ok:['✅','Al día','v'],medio:['🟡','Atención',''],alto:['🟠','En riesgo','n'],critico:['🔴','Revisar situación','n']};
+function tabsAdmin(activa){return `<div class="seg" style="margin-bottom:14px"><button onclick="location.hash='#coordinacion'" class="${activa==='act'?'on':''}">Actividades</button><button onclick="location.hash='#coordinacion/voluntarios'" class="${activa==='vol'?'on':''}">Voluntarios</button></div>`}
+async function vAdminVoluntarios(){
+  const r=await api('adminVoluntarios'); adminVols=r;
+  const pintar=()=>{
+    const q=adminVolBusca.trim().toLowerCase();
+    let l=r.voluntarios.filter(v=>!q||(v.nombre+' '+v.celular+' '+v.correo).toLowerCase().includes(q));
+    if(adminVolFiltro==='riesgo') l=l.filter(v=>v.estado!=='inactivo'&&(v.riesgo==='alto'||v.riesgo==='critico'||v.porRevisar));
+    if(adminVolFiltro==='activos') l=l.filter(v=>v.estado!=='inactivo');
+    if(adminVolFiltro==='inactivos') l=l.filter(v=>v.estado==='inactivo');
+    $('#lista').innerHTML=l.length?l.map(v=>{const g=RIESGO[v.riesgo]||RIESGO.ok;return `<a href="#coordinacion/vol-${v.id}" style="text-decoration:none"><div class="card" style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;gap:8px"><b>${esc(v.nombre)}</b>${v.estado==='inactivo'?'<span class="chip">Inactivo</span>':`<span class="chip ${g[2]}">${g[0]} ${g[1]}</span>`}</div>
+      <div class="muted">${v.participaciones}/${v.meta} este trimestre · ${v.faltasInjustificadas} falta(s)${v.porRevisar?' · '+v.porRevisar+' por revisar':''}${v.rol==='coordinacion'?' · coordinación':''}</div></div></a>`}).join(''):'<div class="card"><p style="margin:0">Nadie coincide con la búsqueda.</p></div>';
+  };
+  const riesgo=r.voluntarios.filter(v=>v.estado!=='inactivo'&&(v.riesgo==='alto'||v.riesgo==='critico'||v.porRevisar)).length;
+  $('#app').innerHTML=`
+  <div style="display:flex;justify-content:space-between;align-items:center"><h1>Coordinación</h1><a href="#inicio" class="muted">Ver la app ›</a></div><div class="garabato"></div>
+  ${tabsAdmin('vol')}
+  <div class="card azul"><p style="margin:0" class="serif">Trimestre ${esc(r.trimestre.nombre)}</p><h3 style="margin-top:4px">Quedan ${r.diasRestantes} días · ${r.voluntarios.length} voluntarios</h3>
+    <p style="margin:6px 0 0">${riesgo?`<b>${riesgo}</b> necesitan atención`:'Nadie en riesgo por ahora 💛'}</p></div>
+  <input id="busca" placeholder="Buscar por nombre, celular o correo" value="${esc(adminVolBusca)}">
+  <div class="seg" id="fv" style="margin-top:10px">${[['todos','Todos'],['riesgo','Atención'],['activos','Activos'],['inactivos','Inactivos']].map(([k,t])=>`<button data-f="${k}" class="${adminVolFiltro===k?'on':''}">${t}</button>`).join('')}</div>
+  <div id="lista"></div>
+  <a class="btn borde" href="${esc(r.urlHoja)}" target="_blank" rel="noopener">Abrir la hoja completa (Google Sheets)</a>
+  <p class="ayuda">La pestaña "Resumen voluntarios" de la hoja se actualiza sola cada noche. Datos privados: solo para coordinación.</p>`;
+  $('#busca').oninput=e=>{adminVolBusca=e.target.value;pintar()};
+  $('#fv').onclick=e=>{const b=e.target.closest('button');if(!b)return;adminVolFiltro=b.dataset.f;document.querySelectorAll('#fv button').forEach(x=>x.classList.toggle('on',x===b));pintar()};
+  pintar();
+}
+async function vAdminVol(id){
+  const r=await api('adminVoluntario',{id}), v=r.voluntario, g=RIESGO[v.riesgo]||RIESGO.ok;
+  const wa=c=>{let n=String(c).replace(/\D/g,'');if(n.length===9)n='51'+n;return n?'https://wa.me/'+n:''};
+  $('#app').innerHTML=`
+  <a href="#coordinacion/voluntarios">‹ Voluntarios</a>
+  <h1 style="margin-top:10px">${esc(v.nombre)}</h1><p>${v.estado==='inactivo'?'<span class="chip">Inactivo</span>':`<span class="chip ${g[2]}">${g[0]} ${g[1]}</span>`}</p>
+  <div class="card">
+    <div class="fila"><div><p class="muted" style="margin:0">Este trimestre</p><div class="big" style="font-size:40px">${v.participaciones}<span class="muted" style="font-size:18px"> / ${v.meta}</span></div></div>
+    <div><p class="muted" style="margin:0">Faltas (año)</p><div class="big" style="font-size:40px;color:${v.faltasInjustificadas>=v.faltasMax-1?'var(--naranja)':'var(--azul)'}">${v.faltasInjustificadas}<span class="muted" style="font-size:18px"> / ${v.faltasMax}</span></div></div></div>
+    <p class="muted" style="margin:8px 0 0">${v.justificadas} justificada(s) · ${v.porRevisar} por revisar · última asistencia: ${v.ultimaAsistencia?fechaLarga(v.ultimaAsistencia):'—'}</p></div>
+  <div class="card">
+    <p class="muted" style="margin:0">Correo</p><p style="margin:2px 0 8px">${esc(v.correo)}</p>
+    <p class="muted" style="margin:0">En Suyay desde</p><p style="margin:2px 0 8px">${esc(v.ingreso)}${v.universidad?' · '+esc(v.universidad):''}</p>
+    <label>Celular</label><div class="fila"><input id="cel" value="${esc(v.celular)}" inputmode="tel">${wa(v.celular)?`<a class="btn verde mini" style="flex:0 0 auto;width:auto;margin:0" href="${wa(v.celular)}" target="_blank" rel="noopener">WhatsApp</a>`:''}</div>
+    <label>Grupo de WhatsApp al que pertenece</label><input id="grupo" value="${esc(v.grupo_whatsapp)}" placeholder="Nombre del grupo o link">
+    <div class="fila"><div><label>Estado</label><select id="est"><option value="activo">Activo</option><option value="inactivo">Inactivo</option></select></div>
+    <div><label>Acceso</label><select id="rol"><option value="voluntario">Voluntario/a</option><option value="coordinacion">Coordinación</option></select></div></div>
+    <label>Observaciones internas</label><textarea id="obs" rows="2">${esc(v.observaciones)}</textarea>
+    <button class="btn azul" id="guardarVol">Guardar cambios</button></div>
+  <h2 style="margin:20px 0 10px">Historial</h2>
+  <div class="card">${r.historial.length?r.historial.map(h=>`<div class="persona" style="flex-wrap:wrap"><span style="flex:1;min-width:180px"><b>${esc(h.titulo)}</b><br><span class="muted">${h.fecha?fechaLarga(h.fecha):''}${h.manual?' · marcada por coordinación':''}${h.motivo?' · '+esc(h.motivo):''}${h.observacion?' · 📝 '+esc(h.observacion):''}</span></span>
+    <span>${chipResultado(h.resultado)}</span>
+    ${(['injustificada','por_revisar','justificada','emergencia','pendiente'].includes(h.resultado)||(['inscrito','por_confirmar'].includes(h.resultado)&&h.fecha<=hoyLocal()))?`<div style="width:100%;display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">
+      <button class="chip v acc" data-a="asis" data-id="${h.actividad_id}">✓ Sí asistió</button>
+      <button class="chip acc" data-a="emergencia" data-id="${h.actividad_id}">Emergencia</button>
+      <button class="chip acc" data-a="justificada" data-id="${h.actividad_id}">Justificada</button>
+      <button class="chip n acc" data-a="injustificada" data-id="${h.actividad_id}">Injustificada</button></div>`:''}</div>`).join(''):'<p style="margin:0">Sin actividades todavía.</p>'}</div>
+  <p class="ayuda">Solo cuenta como participación la asistencia confirmada (GPS o marcada aquí). Las actividades canceladas por Suyay nunca cuentan como falta.</p>`;
+  $('#est').value=v.estado;$('#rol').value=v.rol;
+  $('#guardarVol').onclick=async e=>{e.target.disabled=true;
+    try{await api('adminActualizarVoluntario',{id,datos:{celular:$('#cel').value,grupo_whatsapp:$('#grupo').value,estado:$('#est').value,rol:$('#rol').value,observaciones:$('#obs').value}});toast('Guardado ✅');adminVols=null}
+    catch(err){toast(err.message,5000)} e.target.disabled=false};
+  document.querySelectorAll('.acc').forEach(b=>b.onclick=async()=>{
+    const accion=b.dataset.a, act=b.dataset.id;
+    let obs='';
+    if(accion!=='asis'){obs=prompt('Observación o motivo (opcional):')||''}
+    b.disabled=true;
+    try{
+      if(accion==='asis'){const x=await api('adminMarcarAsistencia',{actividad_id:act,voluntario_id:id});toast(x.nuevosCertificados&&x.nuevosCertificados.length?'Asistencia marcada. ¡Le llegó un certificado nuevo! 🎉':'Asistencia marcada ✅')}
+      else{await api('adminInasistencia',{actividad_id:act,voluntario_id:id,tipo:accion,observacion:obs});toast('Actualizado ✅')}
+      vAdminVol(id);
+    }catch(err){toast(err.message);b.disabled=false}
+  });
+}
+
+/* ---------- V5: cancelar / reprogramar con aviso ---------- */
+const MSG_CANCELAR=`Queremos informarte que, debido a coordinaciones externas a Suyay, nuestra próxima actividad tendrá que ser cancelada.
+
+Estamos trabajando para poder reprogramarla y te comunicaremos la nueva fecha apenas esté confirmada.
+
+Agradecemos mucho tu comprensión y, sobre todo, tu disposición para seguir participando con nosotros.
+
+¡Esperamos encontrarnos muy pronto!
+
+Con cariño,
+Equipo Suyay.`;
+const MSG_REPROG=`¡Hola, Suyi! Te escribimos porque una actividad en la que estás inscrito/a cambió de fecha u horario. Aquí van los nuevos detalles:`;
+function vAdminAviso(tipo,a){
+  const cancelar=tipo==='cancelar';
+  $('#app').innerHTML=`
+  <a href="#coordinacion/editar-${a.id}">‹ Volver</a>
+  <h1 style="margin-top:10px">${cancelar?'Cancelar actividad':'Reprogramar y avisar'}</h1><div class="garabato"></div>
+  <div class="card ${cancelar?'naranja':'amarillo'}"><h3>${esc(a.titulo)}</h3><p style="margin:6px 0 0">${a.fecha?fechaLarga(a.fecha):''} · ${a.inscritos||0} inscrito(s)</p></div>
+  <div class="card">
+    ${cancelar?`<label>Asunto del correo</label><input id="asunto" value="Actualización importante sobre nuestra próxima actividad Suyay">`:''}
+    <label>Mensaje</label><textarea id="msg" rows="${cancelar?12:4}">${esc(cancelar?MSG_CANCELAR:MSG_REPROG)}</textarea>
+    ${cancelar?'':'<p class="ayuda">Debajo del mensaje irán automáticamente la nueva fecha, hora y lugar, con un botón para que confirmen si podrán ir.</p>'}
+    ${cancelar?`<label style="display:flex;gap:8px;align-items:center;font-weight:500"><input type="checkbox" id="notif" checked style="width:auto"> Enviar este correo a los inscritos</label>`:''}
+    <button class="btn primario" id="ok">${cancelar?'Cancelar actividad':'Avisar a los inscritos'}</button></div>
+  <p class="ayuda">Cada persona recibe este aviso una sola vez aunque toques el botón de nuevo.${cancelar?' Cancelar no cuenta como falta para nadie.':''}</p>`;
+  $('#ok').onclick=async e=>{e.target.disabled=true;
+    try{
+      const r=cancelar?await api('adminCancelar',{id:a.id,notificar:$('#notif').checked,asunto:$('#asunto').value,mensaje:$('#msg').value})
+                      :await api('adminReprogramar',{id:a.id,mensaje:$('#msg').value});
+      actividades=null;toast(cancelar?`Actividad cancelada. ${r.enviados} correo(s) enviados.`:`Listo: ${r.enviados} aviso(s) enviados. Los inscritos deben reconfirmar.`,6000);location.hash='#coordinacion';
+    }catch(err){toast(err.message);e.target.disabled=false}};
+}
+async function vAdminEntrarCuenta(){
+  if(!token) return false;
+  try{await refrescar()}catch(e){}
+  if(!perfil||!perfil.esCoordinacion) return false;
+  try{const r=await api('adminLogin',{});adminToken=r.adminToken;try{sessionStorage.setItem('suyay_admin',adminToken)}catch(e){}return true}catch(e){toast(e.message);return false}
+}
+
+const FAQ=[
+ ['Usar la app',[
+  ['¿Cómo instalo la app en mi celular?','No se descarga de ninguna tienda. En iPhone, ábrela en Safari, toca Compartir y luego "Agregar a pantalla de inicio". En Android, ábrela en Chrome, toca los tres puntitos y luego "Instalar app".'],
+  ['Olvidé mi contraseña, ¿qué hago?','En la pantalla de ingreso toca "¿Olvidaste tu contraseña?", escribe tu DNI y te llegará un código de 6 dígitos a tu correo para crear una nueva. Revisa también la carpeta de spam.'],
+  ['¿Puedo entrar con Face ID o huella?','Sí. Cuando entres por primera vez, tu celular te ofrecerá guardar la contraseña; acepta y la próxima vez la rellenará con tu cara o huella.'],
+  ['Algún dato mío está mal, ¿cómo lo cambio?','Escríbenos a comunicacion.suyay@gmail.com o avísale a tu coordinadora y lo corregimos.']]],
+ ['Inscripciones',[
+  ['¿Cómo me inscribo en una actividad?','Entra a Calendario, toca la actividad y luego "¡Me apunto!". Después únete al grupo de WhatsApp de esa actividad con el botón verde.'],
+  ['¿Hasta cuándo puedo inscribirme?','Hasta la fecha de cierre que aparece en cada actividad o hasta que se acaben los cupos.'],
+  ['Me inscribí pero ya no puedo ir','Entra a la actividad y toca "Ya no podré ir". Si avisas con 24 horas o más de anticipación, no cuenta como falta. Si es con menos tiempo, queda por revisar y coordinación evalúa si fue una emergencia.'],
+  ['Me llegó un correo de que una actividad cambió de fecha','Entra a la actividad y confirma si podrás ir con la nueva fecha. Si no confirmas, tu cupo puede liberarse para otra persona.'],
+  ['¿Y si Suyay cancela una actividad?','Te avisamos por correo. Una actividad cancelada por Suyay nunca cuenta como falta.']]],
+ ['Asistencia',[
+  ['¿Cómo marco mi asistencia?','El día de la actividad, ya en el lugar, abre la actividad y toca "📍 Marcar mi asistencia". Acepta cuando el celular pida tu ubicación. No necesitas escribir nada.'],
+  ['¿Desde qué hora puedo marcar?','Desde 30 minutos antes del inicio hasta 30 minutos después del final.'],
+  ['Me dice que no estoy en el lugar','La app compara tu ubicación con la del lugar (unos 300 metros a la redonda). Activa el GPS, sal a un espacio abierto e intenta otra vez. Si aun así no funciona, avísale a tu coordinadora: ella puede marcar tu asistencia desde su panel.'],
+  ['Mi celular no me pide la ubicación','Revisa en la configuración de tu celular que el navegador (Safari o Chrome) tenga permiso de ubicación y vuelve a intentarlo.']]],
+ ['Política de participación',[
+  ['¿Cuántas actividades debo hacer?','Mínimo 3 actividades por trimestre (enero–marzo, abril–junio, julio–septiembre y octubre–diciembre). En Inicio ves cuántas llevas.'],
+  ['¿Qué cuenta como participación?','Solo las actividades donde tu asistencia quedó registrada. Inscribirte no cuenta si luego no asistes.'],
+  ['¿Qué pasa si falto?','Si estabas inscrito/a, no asististe y no avisaste, se registra una falta. Al acumular 3 faltas sin justificar en el año, coordinación revisa tu situación y podrías ser retirado/a de la organización.'],
+  ['¿Cómo justifico una falta?','Dándote de baja desde la app con al menos 24 horas de anticipación. Las emergencias reales se evalúan como excepción aunque no hayas podido avisar: escríbele a tu coordinadora.'],
+  ['¿Dónde veo mi historial?','En la sección Certificados, debajo de tus certificados, está "Mi historial" con cada actividad y su resultado.']]],
+ ['Horas, insignias y certificados',[
+  ['¿Cómo se cuentan mis horas?','Cada actividad suma las horas indicadas en su ficha cuando tu asistencia queda registrada.'],
+  ['¿Cuándo recibo mi certificado?','Cada vez que cumples 20 horas recibes una insignia nueva y un certificado en PDF por correo. También quedan guardados en "Mis certificados".'],
+  ['Necesito una constancia para mi universidad u otra institución','Pídesela a coordinación: te enviamos un certificado actualizado con todas tus horas y el detalle de tus jornadas.']]],
+ ['Comunidad y privacidad',[
+  ['¿Quién ve mis datos?','Solo el equipo de coordinación de Suyay. Tus datos se usan únicamente para tu registro de voluntariado.'],
+  ['¿Dónde sigo las novedades de Suyay?','En nuestro Instagram, LinkedIn y TikTok. Encuentras los botones en Perfil y en la pantalla de ingreso.']]]
+];
+function vAyuda(){
+  $('#app').innerHTML=`<h1>Preguntas frecuentes</h1><div class="garabato"></div>
+  ${FAQ.map(([sec,qs])=>`<h2 style="margin:18px 0 8px">${sec}</h2>${qs.map(([q,a])=>`<details class="card faq"><summary>${q}</summary><p>${a}</p></details>`).join('')}`).join('')}
+  <div class="card amarillo"><h3>¿No encontraste tu respuesta?</h3><p style="margin:6px 0 0">Escríbenos a <a href="mailto:comunicacion.suyay@gmail.com">comunicacion.suyay@gmail.com</a> o pregúntale a tu coordinadora.</p></div>
+  <a class="btn borde" href="${token?'#inicio':'#entrar'}">‹ Volver</a>`;
 }
 
 if(RUTA_INICIAL){ history.replaceState(null,'',location.pathname+'#'+RUTA_INICIAL); router(); }
