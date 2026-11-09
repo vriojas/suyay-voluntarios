@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Suyay Voluntarios</title>
+<title>SUYAY Voluntarios</title>
 <meta name="theme-color" content="#112EA7">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Suyay">
+<meta name="apple-mobile-web-app-title" content="SUYAY">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -99,7 +99,7 @@ button.chip{border:0;cursor:pointer;font-family:inherit}
 </head>
 <body>
 <header>
-  <a href="#inicio" class="logo"><img src="logo.png" alt="Suyay"></a>
+  <a href="#inicio" class="logo"><img src="logo.png" alt="SUYAY"></a>
   <span class="serif" style="font-size:13px;opacity:.85">voluntarios</span>
 </header>
 <main id="app"><div class="cargando">Cargando…</div></main>
@@ -142,7 +142,7 @@ const HITO = 20;
 const INSIGNIAS = [
   [20,'020-chispa','Chispa'],[40,'040-llamita','Llamita'],[60,'060-fogata','Fogata'],[80,'080-antorcha','Antorcha'],
   [100,'100-faro','Faro'],[120,'120-lucero','Lucero'],[140,'140-estrella','Estrella'],[160,'160-constelacion','Constelación'],
-  [180,'180-sol','Sol'],[200,'200-corazon','Corazón Suyay']
+  [180,'180-sol','Sol'],[200,'200-corazon','Corazón SUYAY']
 ].map(([h,f,n],i)=>({horas:h,img:'data:image/svg+xml;utf8,'+encodeURIComponent(insigniaSVG(i,h,n)),nombre:n}));
 const MESES=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 const DIAS=['dom','lun','mar','mié','jue','vie','sáb'];
@@ -309,7 +309,7 @@ function vOlvide(){
 function vRegistro(){
   const anio=new Date().getFullYear();
   $('#app').innerHTML=`
-  <div class="card azul"><h2>Bienvenidx a Suyay 💛</h2><p>Cuéntanos un poquito de ti. Con esto llevamos tus horas, insignias y certificados.</p></div>
+  <div class="card azul"><h2>Bienvenidx a SUYAY 💛</h2><p>Cuéntanos un poquito de ti. Con esto llevamos tus horas, insignias y certificados.</p></div>
   <div class="card">
     <label>Nombre completo</label><input id="nombre" autocomplete="name">
     <div class="fila"><div><label>DNI</label><input id="dni" inputmode="numeric" maxlength="8"></div>
@@ -317,12 +317,12 @@ function vRegistro(){
     <label>Correo</label><input id="correo" type="email" autocomplete="email">
     <label>Universidad o institución (opcional)</label><input id="universidad">
     <label>Fecha de nacimiento</label><input id="nacimiento" type="date">
-    <label>¿Desde cuándo eres parte de Suyay?</label>
+    <label>¿Desde cuándo eres parte de SUYAY?</label>
     <div class="fila"><select id="mes">${MESES.map((m,i)=>`<option value="${i+1}">${m}</option>`).join('')}</select>
     <select id="anio">${Array.from({length:anio-2021},(_,i)=>anio-i).map(a=>`<option>${a}</option>`).join('')}</select></div>
     <label>Crea una contraseña (mínimo 8 caracteres)</label><input id="clave1" type="password" autocomplete="new-password">
     <label>Repite la contraseña</label><input id="clave2" type="password" autocomplete="new-password">
-    <p class="muted" style="font-size:12px">Con tu DNI y esta contraseña entrarás a la app. Tu celular puede guardarla para entrar con Face ID o huella. Tus datos se usan solo para tu registro de voluntariado en Suyay Global Impact.</p>
+    <p class="muted" style="font-size:12px">Con tu DNI y esta contraseña entrarás a la app. Tu celular puede guardarla para entrar con Face ID o huella. Tus datos se usan solo para tu registro de voluntariado en SUYAY.</p>
     <button class="btn primario" id="go">Registrarme</button>
   </div>`;
   $('#mes').value=new Date().getMonth()+1;
@@ -353,9 +353,9 @@ async function vInicio(){
   const pct=sig?Math.min(100,Math.round((p.horas-prevH)/HITO*100)):100;
   const mias=acts.filter(a=>(p.inscripciones.includes(a.id)||(p.porConfirmar||[]).includes(a.id))&&a.fecha>=hoyLocal()).slice(0,3);
   $('#app').innerHTML=`
-  ${cumple?`<div class="card amarillo" style="text-align:center"><div style="font-size:46px">🎂🎉</div><h2>¡Feliz cumpleaños, ${esc(nombre)}!</h2><p>Toda la familia Suyay celebra contigo hoy. Gracias por encender tantas sonrisas.</p></div>`:''}
+  ${cumple?`<div class="card amarillo" style="text-align:center"><div style="font-size:46px">🎂🎉</div><h2>¡Feliz cumpleaños, ${esc(nombre)}!</h2><p>Toda la familia SUYAY celebra contigo hoy. Gracias por encender tantas sonrisas.</p></div>`:''}
   <h1>Hola, ${esc(nombre)} 👋</h1><div class="garabato"></div>
-  <div class="card azul"><p class="serif" style="margin:0 0 6px;opacity:.9">Llevas en Suyay</p><h2 style="font-size:26px">${t.texto}</h2><p style="margin:8px 0 0;opacity:.85">Son ${t.dias.toLocaleString('es-PE')} días encendiendo la llama del cambio 🔥</p></div>
+  <div class="card azul"><p class="serif" style="margin:0 0 6px;opacity:.9">Llevas en SUYAY</p><h2 style="font-size:26px">${t.texto}</h2><p style="margin:8px 0 0;opacity:.85">Son ${t.dias.toLocaleString('es-PE')} días encendiendo la llama del cambio 🔥</p></div>
   <div class="card"><div style="display:flex;justify-content:space-between;align-items:center">
     <div><p class="muted" style="margin:0">Horas de voluntariado</p><div class="big">${p.horas}</div></div>
     ${sig?`<img src="${sig.img}" style="width:92px;filter:grayscale(1);opacity:.4">`:`<img src="${INSIGNIAS.at(-1).img}" style="width:92px">`}
@@ -395,7 +395,7 @@ async function vCalendario(){
   document.querySelectorAll('.cal [data-ir]').forEach(c=>c.onclick=()=>{const el=document.getElementById(c.dataset.ir);if(!el)return;el.scrollIntoView({behavior:'smooth',block:'center'});el.classList.add('brillo');setTimeout(()=>el.classList.remove('brillo'),1400)});
   $('#compartir').onclick=()=>{
     const url=APP_URL+'?r=calendario';
-    const txt=`📅 Próximas actividades Suyay\n\n`+(proximas.length?proximas.map(a=>`• ${fechaLarga(a.fecha)} · ${a.titulo}`).join('\n'):'Muy pronto publicaremos nuevas actividades.')+`\n\nInscríbete aquí 👉 ${url}`;
+    const txt=`📅 Próximas actividades SUYAY\n\n`+(proximas.length?proximas.map(a=>`• ${fechaLarga(a.fecha)} · ${a.titulo}`).join('\n'):'Muy pronto publicaremos nuevas actividades.')+`\n\nInscríbete aquí 👉 ${url}`;
     if(navigator.share) navigator.share({text:txt}).catch(()=>{}); else {navigator.clipboard.writeText(txt);toast('Mensaje copiado, pégalo en WhatsApp')}
   };
 }
@@ -444,9 +444,10 @@ async function vActividad(id){
     if(!esHoy&&a.fecha>hoyLocal()) h+='<button class="btn borde" id="salir">Ya no podré ir</button>';
   } else if(!cerrada&&a.fecha>=hoyLocal()&&(libres===null||libres>0)) h+='<button class="btn primario" id="inscribir">¡Me apunto! 🙌</button>';
   else if(!asistio&&!esHoy) h+=`<div class="card"><p style="margin:0">${cerrada?'Las inscripciones ya cerraron.':'Ya no quedan cupos.'}</p></div>`;
+  if(inscrito||porConf) h+=botonesCalendario(a);
   ac.innerHTML=h;
   const b=(s,f)=>{const el=$(s);if(el)el.onclick=f};
-  b('#inscribir',async e=>{e.target.disabled=true;try{const r=await api('inscribir',{actividad_id:a.id});toast('¡Listo, estás inscrito! Únete al grupo de WhatsApp 💚');actividades=null;await vActividad(id)}catch(err){toast(err.message);e.target.disabled=false}});
+  b('#inscribir',async e=>{e.target.disabled=true;try{const r=await api('inscribir',{actividad_id:a.id});toast('¡Listo, estás inscrito/a! Únete al grupo de WhatsApp y agrégala a tu calendario 💚',5000);actividades=null;await vActividad(id)}catch(err){toast(err.message);e.target.disabled=false}});
   b('#salir',()=>{if(!$('#baja'))formBaja(a,ac)});
   b('#conf',async e=>{e.target.disabled=true;try{await api('confirmar',{actividad_id:a.id});perfil=null;actividades=null;toast('¡Gracias por confirmar! 💛');await vActividad(id)}catch(err){toast(err.message);e.target.disabled=false}});
   b('#marcar',e=>marcarAsistencia(a,e.target));
@@ -531,7 +532,7 @@ async function vPerfil(){
   <div class="card"><p class="muted" style="margin:0">Correo</p><p style="margin:2px 0 10px">${esc(v.correo)}</p>
   <p class="muted" style="margin:0">Celular</p><p style="margin:2px 0 10px">${esc(v.celular)}</p>
   <p class="muted" style="margin:0">Universidad</p><p style="margin:2px 0 10px">${esc(v.universidad||'—')}</p>
-  <p class="muted" style="margin:0">En Suyay desde</p><p style="margin:2px 0 0">${MESES[v.ingreso_mes-1]} de ${v.ingreso_anio}</p>
+  <p class="muted" style="margin:0">En SUYAY desde</p><p style="margin:2px 0 0">${MESES[v.ingreso_mes-1]} de ${v.ingreso_anio}</p>
   <p class="muted" style="font-size:12px">¿Algún dato está mal? Escríbenos a comunicacion.suyay@gmail.com.</p></div>
   <div class="card amarillo"><h3>📲 Tenla como app</h3><p style="margin:6px 0 0">${ios?'En Safari toca el botón <b>Compartir</b> y luego <b>Agregar a pantalla de inicio</b>.':'En Chrome toca los <b>tres puntitos</b> y luego <b>Agregar a pantalla principal</b> o <b>Instalar app</b>.'}</p></div>
   <button class="btn borde" id="salir">Cerrar sesión</button>
@@ -557,7 +558,7 @@ async function adminCargar(){ const r=await api('adminListar'); adminActs=r.acti
 
 function vAdminEntrar(){
   $('#app').innerHTML=`
-  <div class="card azul"><h2>Coordinación 🔑</h2><p style="margin:6px 0 0">Espacio para coordinadoras de Suyay: aquí publicas, editas y cancelas actividades.</p></div>
+  <div class="card azul"><h2>Coordinación 🔑</h2><p style="margin:6px 0 0">Espacio para coordinadoras de SUYAY: aquí publicas, editas y cancelas actividades.</p></div>
   <div class="card"><label>Clave de coordinación</label><input id="clave" type="password" autocomplete="current-password">
   <button class="btn primario" id="go">Entrar</button></div>
   <p style="text-align:center"><a href="#inicio">‹ Volver a la app</a></p>`;
@@ -637,7 +638,7 @@ function vAdminForm(a){
     <p class="ayuda">Último día en que los voluntarios pueden inscribirse. Vacío = hasta el día de la actividad.</p>
     <label>Link del grupo de WhatsApp</label><input id="f_wa" value="${v('whatsapp')}" placeholder="https://chat.whatsapp.com/…">
     <details><summary>Opciones avanzadas</summary>
-      <label>Programa</label><input id="f_prog" value="${v('programa')}" placeholder="Ej. Suyay Lee">
+      <label>Programa</label><input id="f_prog" value="${v('programa')}" placeholder="Ej. SUYAY Lee">
       <label>Coordenadas exactas (opcional)</label><input id="f_coord" value="${a.lat!==''&&a.lat!=null?a.lat+', '+a.lng:''}" placeholder="-12.0769, -77.0828">
       <p class="ayuda">Úsalo si el mapa no encuentra la dirección: en Google Maps mantén presionado el punto exacto y copia los números que aparecen.</p>
       <label>Radio para marcar asistencia (metros, máximo 300)</label><input id="f_radio" type="number" min="50" max="300" step="10" value="${v('radio_m')}" placeholder="200">
@@ -647,6 +648,7 @@ function vAdminForm(a){
   <button class="btn borde" id="borrador">Guardar como borrador</button>
   ${!nueva&&a.estado!=='cancelada'&&a.estado!=='borrador'?'<button class="btn borde" id="reprog">📅 Cambié fecha u hora: reprogramar y avisar</button>':''}
   ${!nueva&&a.estado!=='cancelada'?'<button class="btn rojo" id="cancelar">Cancelar actividad…</button>':''}
+  ${!nueva?'<button class="btn rojo" id="eliminar" style="border-style:dashed">🗑️ Eliminar (creada por error o de prueba)</button><p class="ayuda" style="text-align:center">Eliminar la retira por completo: no aparece en el calendario ni en el historial de nadie y no envía correos. Si la actividad era real y no se hará, usa Cancelar.</p>':''}
   <p class="ayuda" style="text-align:center">Borrador: solo se ve aquí. Publicada: aparece al instante en el calendario de la app.</p>`;
   const autoHoras=()=>{const hi=$('#f_hi').value,hf=$('#f_hf').value;if(hi&&hf&&!$('#f_horas').value){const [a1,b1]=hi.split(':').map(Number),[a2,b2]=hf.split(':').map(Number);const h=Math.round(((a2*60+b2)-(a1*60+b1))/30)/2;if(h>0)$('#f_horas').value=h}};
   $('#f_hi').onchange=autoHoras;$('#f_hf').onchange=autoHoras;
@@ -672,6 +674,11 @@ function vAdminForm(a){
   $('#publicar').onclick=e=>enviar(a.estado==='reprogramada'||a.estado==='finalizada'?a.estado:'activa',e.target);
   $('#borrador').onclick=e=>enviar('borrador',e.target);
   const c=$('#cancelar'); if(c) c.onclick=()=>vAdminAviso('cancelar',a);
+  const el=$('#eliminar'); if(el) el.onclick=async()=>{
+    if(!el.dataset.seguro){el.dataset.seguro='1';el.textContent='¿Segura? Toca otra vez para eliminarla definitivamente';setTimeout(()=>{el.dataset.seguro='';el.textContent='🗑️ Eliminar (creada por error o de prueba)'},5000);return}
+    el.disabled=true;
+    try{const r=await api('adminEliminar',{id:a.id});actividades=null;perfil=null;toast('Actividad eliminada'+(r.inscripciones?` (${r.inscripciones} inscripción(es) archivadas)`:'')+'.',5000);location.hash='#coordinacion'}
+    catch(err){toast(err.message);el.disabled=false}};
   const rp=$('#reprog'); if(rp) rp.onclick=async()=>{window.__trasGuardar=r=>vAdminAviso('reprogramar',Object.assign({},a,{id:r.id,fecha:$('#f_fecha').value}));await enviar(a.estado==='activa'?'activa':a.estado,rp);if(!rp.disabled)window.__trasGuardar=null};
 }
 function vAdminResultado(r,estado,datos){
@@ -700,13 +707,15 @@ async function vAdminInscritos(id){
     <span>${p.asistio?'<span class="chip v">✓ Asistió</span>':''}${p.sinInscripcion?'<span class="chip">sin inscripción</span>':''}
     ${wa(p.celular)?`<a href="${wa(p.celular)}" target="_blank" rel="noopener" class="chip">WhatsApp</a>`:''}</span></div>`).join(''):'<p style="margin:0">Todavía no hay inscritos.</p>'}</div>
   ${r.inscritos.length?'<button class="btn azul" id="copiar">Copiar lista de nombres</button>':''}
-  <p class="ayuda">Estos datos son privados: úsalos solo para coordinar la actividad.</p>`;
+  <p class="ayuda">Estos datos son privados: úsalos solo para coordinar la actividad.</p>
+  <h2 style="margin:20px 0 10px">Correos enviados</h2><div class="card" id="envios"><p class="muted" style="margin:0">Cargando…</p></div>`;
+  cargarEnvios(id,$('#envios'));
   const b=$('#copiar'); if(b) b.onclick=()=>{navigator.clipboard.writeText(r.inscritos.map((p,i)=>`${i+1}. ${p.nombre}`).join('\n'));toast('Lista copiada')};
 }
 
 /* ---------- V5: política de asistencia (voluntario) ---------- */
 const RESULTADOS={asistio:['✅','Asistió','v'],injustificada:['❌','Falta','n'],justificada:['🟦','Justificada',''],emergencia:['🟦','Emergencia (justificada)',''],
-  por_revisar:['🟡','Por revisar','n'],inscrito:['📌','Inscrito/a',''],por_confirmar:['🔔','Por confirmar','n'],pendiente:['⏳','En proceso',''],baja:['↩️','Se dio de baja',''],cancelada:['🚫','Cancelada por Suyay','']};
+  por_revisar:['🟡','Por revisar','n'],inscrito:['📌','Inscrito/a',''],por_confirmar:['🔔','Por confirmar','n'],pendiente:['⏳','En proceso',''],baja:['↩️','Se dio de baja',''],cancelada:['🚫','Cancelada por SUYAY','']};
 const ESTADO_ACT_TXT={activa:'programada',reprogramada:'reprogramada',finalizada:'finalizada',cancelada:'cancelada',borrador:'borrador'};
 function chipResultado(r){const x=RESULTADOS[r]||['','',''];return `<span class="chip ${x[2]}">${x[0]} ${x[1]}</span>`}
 function tarjetaPolitica(p){
@@ -790,7 +799,7 @@ async function vAdminVol(id){
     <p class="muted" style="margin:8px 0 0">${v.justificadas} justificada(s) · ${v.porRevisar} por revisar · última asistencia: ${v.ultimaAsistencia?fechaLarga(v.ultimaAsistencia):'—'}</p></div>
   <div class="card">
     <p class="muted" style="margin:0">Correo</p><p style="margin:2px 0 8px">${esc(v.correo)}</p>
-    <p class="muted" style="margin:0">En Suyay desde</p><p style="margin:2px 0 8px">${esc(v.ingreso)}${v.universidad?' · '+esc(v.universidad):''}</p>
+    <p class="muted" style="margin:0">En SUYAY desde</p><p style="margin:2px 0 8px">${esc(v.ingreso)}${v.universidad?' · '+esc(v.universidad):''}</p>
     <label>Celular</label><div class="fila"><input id="cel" value="${esc(v.celular)}" inputmode="tel">${wa(v.celular)?`<a class="btn verde mini" style="flex:0 0 auto;width:auto;margin:0" href="${wa(v.celular)}" target="_blank" rel="noopener">WhatsApp</a>`:''}</div>
     <label>Grupo de WhatsApp al que pertenece</label><input id="grupo" value="${esc(v.grupo_whatsapp)}" placeholder="Nombre del grupo o link">
     <div class="fila"><div><label>Estado</label><select id="est"><option value="activo">Activo</option><option value="inactivo">Inactivo</option></select></div>
@@ -805,7 +814,7 @@ async function vAdminVol(id){
       <button class="chip acc" data-a="emergencia" data-id="${h.actividad_id}">Emergencia</button>
       <button class="chip acc" data-a="justificada" data-id="${h.actividad_id}">Justificada</button>
       <button class="chip n acc" data-a="injustificada" data-id="${h.actividad_id}">Injustificada</button></div>`:''}</div>`).join(''):'<p style="margin:0">Sin actividades todavía.</p>'}</div>
-  <p class="ayuda">Solo cuenta como participación la asistencia confirmada (GPS o marcada aquí). Las actividades canceladas por Suyay nunca cuentan como falta.</p>`;
+  <p class="ayuda">Solo cuenta como participación la asistencia confirmada (GPS o marcada aquí). Las actividades canceladas por SUYAY nunca cuentan como falta.</p>`;
   $('#est').value=v.estado;$('#rol').value=v.rol;
   $('#guardarVol').onclick=async e=>{e.target.disabled=true;
     try{await api('adminActualizarVoluntario',{id,datos:{celular:$('#cel').value,grupo_whatsapp:$('#grupo').value,estado:$('#est').value,rol:$('#rol').value,observaciones:$('#obs').value}});toast('Guardado ✅');adminVols=null}
@@ -824,7 +833,7 @@ async function vAdminVol(id){
 }
 
 /* ---------- V5: cancelar / reprogramar con aviso ---------- */
-const MSG_CANCELAR=`Queremos informarte que, debido a coordinaciones externas a Suyay, nuestra próxima actividad tendrá que ser cancelada.
+const MSG_CANCELAR=`Queremos informarte que, debido a coordinaciones externas a SUYAY, nuestra próxima actividad tendrá que ser cancelada.
 
 Estamos trabajando para poder reprogramarla y te comunicaremos la nueva fecha apenas esté confirmada.
 
@@ -833,7 +842,7 @@ Agradecemos mucho tu comprensión y, sobre todo, tu disposición para seguir par
 ¡Esperamos encontrarnos muy pronto!
 
 Con cariño,
-Equipo Suyay.`;
+Equipo SUYAY.`;
 const MSG_REPROG=`¡Hola, Suyi! Te escribimos porque una actividad en la que estás inscrito/a cambió de fecha u horario. Aquí van los nuevos detalles:`;
 function vAdminAviso(tipo,a){
   const cancelar=tipo==='cancelar';
@@ -842,7 +851,7 @@ function vAdminAviso(tipo,a){
   <h1 style="margin-top:10px">${cancelar?'Cancelar actividad':'Reprogramar y avisar'}</h1><div class="garabato"></div>
   <div class="card ${cancelar?'naranja':'amarillo'}"><h3>${esc(a.titulo)}</h3><p style="margin:6px 0 0">${a.fecha?fechaLarga(a.fecha):''} · ${a.inscritos||0} inscrito(s)</p></div>
   <div class="card">
-    ${cancelar?`<label>Asunto del correo</label><input id="asunto" value="Actualización importante sobre nuestra próxima actividad Suyay">`:''}
+    ${cancelar?`<label>Asunto del correo</label><input id="asunto" value="Actualización importante sobre nuestra próxima actividad SUYAY">`:''}
     <label>Mensaje</label><textarea id="msg" rows="${cancelar?12:4}">${esc(cancelar?MSG_CANCELAR:MSG_REPROG)}</textarea>
     ${cancelar?'':'<p class="ayuda">Debajo del mensaje irán automáticamente la nueva fecha, hora y lugar, con un botón para que confirmen si podrán ir.</p>'}
     ${cancelar?`<label style="display:flex;gap:8px;align-items:center;font-weight:500"><input type="checkbox" id="notif" checked style="width:auto"> Enviar este correo a los inscritos</label>`:''}
@@ -852,7 +861,10 @@ function vAdminAviso(tipo,a){
     try{
       const r=cancelar?await api('adminCancelar',{id:a.id,notificar:$('#notif').checked,asunto:$('#asunto').value,mensaje:$('#msg').value})
                       :await api('adminReprogramar',{id:a.id,mensaje:$('#msg').value});
-      actividades=null;toast(cancelar?`Actividad cancelada. ${r.enviados} correo(s) enviados.`:`Listo: ${r.enviados} aviso(s) enviados. Los inscritos deben reconfirmar.`,6000);location.hash='#coordinacion';
+      actividades=null;
+      if(cancelar){const det=[r.enviados+' enviado(s)',r.omitidos?r.omitidos+' ya lo tenían':'',r.sinCorreo?r.sinCorreo+' sin correo':'',r.errores?r.errores+' con error':''].filter(Boolean).join(' · ');
+        toast(r.total?`Actividad cancelada. Correos: ${det}.`:'Actividad cancelada. No había personas inscritas a quienes avisar.',8000);location.hash='#coordinacion/inscritos-'+a.id}
+      else{toast(`Listo: ${r.enviados} aviso(s) enviados. Los inscritos deben reconfirmar.`,6000);location.hash='#coordinacion'}
     }catch(err){toast(err.message);e.target.disabled=false}};
 }
 async function vAdminEntrarCuenta(){
@@ -873,7 +885,7 @@ const FAQ=[
   ['¿Hasta cuándo puedo inscribirme?','Hasta la fecha de cierre que aparece en cada actividad o hasta que se acaben los cupos.'],
   ['Me inscribí pero ya no puedo ir','Entra a la actividad y toca "Ya no podré ir". Si avisas con 24 horas o más de anticipación, no cuenta como falta. Si es con menos tiempo, queda por revisar y coordinación evalúa si fue una emergencia.'],
   ['Me llegó un correo de que una actividad cambió de fecha','Entra a la actividad y confirma si podrás ir con la nueva fecha. Si no confirmas, tu cupo puede liberarse para otra persona.'],
-  ['¿Y si Suyay cancela una actividad?','Te avisamos por correo. Una actividad cancelada por Suyay nunca cuenta como falta.']]],
+  ['¿Y si SUYAY cancela una actividad?','Te avisamos por correo. Una actividad cancelada por SUYAY nunca cuenta como falta.']]],
  ['Asistencia',[
   ['¿Cómo marco mi asistencia?','El día de la actividad, ya en el lugar, abre la actividad y toca "📍 Marcar mi asistencia". Acepta cuando el celular pida tu ubicación. No necesitas escribir nada.'],
   ['¿Desde qué hora puedo marcar?','Desde 30 minutos antes del inicio hasta 30 minutos después del final.'],
@@ -890,14 +902,40 @@ const FAQ=[
   ['¿Cuándo recibo mi certificado?','Cada vez que cumples 20 horas recibes una insignia nueva y un certificado en PDF por correo. También quedan guardados en "Mis certificados".'],
   ['Necesito una constancia para mi universidad u otra institución','Pídesela a coordinación: te enviamos un certificado actualizado con todas tus horas y el detalle de tus jornadas.']]],
  ['Comunidad y privacidad',[
-  ['¿Quién ve mis datos?','Solo el equipo de coordinación de Suyay. Tus datos se usan únicamente para tu registro de voluntariado.'],
-  ['¿Dónde sigo las novedades de Suyay?','En nuestro Instagram, LinkedIn y TikTok. Encuentras los botones en Perfil y en la pantalla de ingreso.']]]
+  ['¿Quién ve mis datos?','Solo el equipo de coordinación de SUYAY. Tus datos se usan únicamente para tu registro de voluntariado.'],
+  ['¿Dónde sigo las novedades de SUYAY?','En nuestro Instagram, LinkedIn y TikTok. Encuentras los botones en Perfil y en la pantalla de ingreso.']]]
 ];
 function vAyuda(){
   $('#app').innerHTML=`<h1>Preguntas frecuentes</h1><div class="garabato"></div>
   ${FAQ.map(([sec,qs])=>`<h2 style="margin:18px 0 8px">${sec}</h2>${qs.map(([q,a])=>`<details class="card faq"><summary>${q}</summary><p>${a}</p></details>`).join('')}`).join('')}
   <div class="card amarillo"><h3>¿No encontraste tu respuesta?</h3><p style="margin:6px 0 0">Escríbenos a <a href="mailto:comunicacion.suyay@gmail.com">comunicacion.suyay@gmail.com</a> o pregúntale a tu coordinadora.</p></div>
   <a class="btn borde" href="${token?'#inicio':'#entrar'}">‹ Volver</a>`;
+}
+
+/* ---------- V6: agregar al calendario (sin permisos) ---------- */
+function calFechas(a){const f=a.fecha.replace(/-/g,''),hi=(a.hora_inicio||'09:00').replace(':',''),hf=(a.hora_fin||a.hora_inicio||'10:00').replace(':','');return [f+'T'+hi+'00',f+'T'+hf+'00']}
+function calDetalle(a){return [a.resumen,a.que_haran?'Qué harán los voluntarios: '+a.que_haran:'',a.whatsapp?'Grupo de WhatsApp: '+a.whatsapp:'','App SUYAY: '+APP_URL+'?r=actividad/'+a.id].filter(Boolean).join('\n\n')}
+function linkGoogleCal(a){const [i,f]=calFechas(a);return 'https://calendar.google.com/calendar/render?action=TEMPLATE&text='+encodeURIComponent('SUYAY · '+a.titulo)+'&dates='+i+'/'+f+'&ctz=America/Lima&details='+encodeURIComponent(calDetalle(a))+'&location='+encodeURIComponent(a.lugar||'')}
+function linkICS(a){
+  const [i,f]=calFechas(a),e=s=>String(s||'').replace(/\\/g,'\\\\').replace(/([,;])/g,'\\$1').replace(/\n/g,'\\n');
+  const ics=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//SUYAY//Voluntarios//ES','CALSCALE:GREGORIAN','BEGIN:VTIMEZONE','TZID:America/Lima','BEGIN:STANDARD','DTSTART:19700101T000000','TZOFFSETFROM:-0500','TZOFFSETTO:-0500','TZNAME:-05','END:STANDARD','END:VTIMEZONE',
+    'BEGIN:VEVENT','UID:'+a.id+'-'+a.fecha+'@suyay','DTSTAMP:'+new Date().toISOString().replace(/[-:]/g,'').slice(0,15)+'Z','DTSTART;TZID=America/Lima:'+i,'DTEND;TZID=America/Lima:'+f,
+    'SUMMARY:'+e('SUYAY · '+a.titulo),'LOCATION:'+e(a.lugar),'DESCRIPTION:'+e(calDetalle(a)),'URL:'+APP_URL+'?r=actividad/'+a.id,
+    'BEGIN:VALARM','TRIGGER:-P1D','ACTION:DISPLAY','DESCRIPTION:Mañana: '+e(a.titulo),'END:VALARM','BEGIN:VALARM','TRIGGER:-PT2H','ACTION:DISPLAY','DESCRIPTION:En 2 horas: '+e(a.titulo),'END:VALARM',
+    'END:VEVENT','END:VCALENDAR'].join('\r\n');
+  return 'data:text/calendar;charset=utf-8,'+encodeURIComponent(ics);
+}
+function botonesCalendario(a){
+  return `<div class="card"><h3>📅 ¿Lo agregamos a tu calendario?</h3><p class="muted" style="margin:4px 0 0">Así tu celular te avisará un día antes y 2 horas antes.</p>
+    <a class="btn azul" href="${linkGoogleCal(a)}" target="_blank" rel="noopener">Agregar a Google Calendar</a>
+    <a class="btn borde" href="${linkICS(a)}" download="SUYAY-${a.id}.ics">iPhone / Outlook / otro calendario</a></div>`;
+}
+
+/* ---------- V6: registro de envíos (coordinación) ---------- */
+async function cargarEnvios(id,cont){
+  try{const r=await api('adminEnvios',{id});
+    cont.innerHTML=r.envios.length?r.envios.map(x=>`<div class="persona"><span><b>${esc(x.nombre||x.correo||'—')}</b><br><span class="muted">${esc(x.fecha)} · ${esc(x.tipo)}${x.detalle?' · '+esc(x.detalle):''}</span></span><span class="chip ${x.resultado==='enviado'?'v':(x.resultado==='omitido'||x.resultado==='eliminada'||x.resultado==='sin aviso'?'':'n')}">${esc(x.resultado)}</span></div>`).join(''):'<p class="muted" style="margin:0">Todavía no hay correos registrados para esta actividad.</p>'}
+  catch(e){cont.innerHTML='<p class="muted">'+esc(e.message)+'</p>'}
 }
 
 if(RUTA_INICIAL){ history.replaceState(null,'',location.pathname+'#'+RUTA_INICIAL); router(); }
