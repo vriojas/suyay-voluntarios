@@ -716,7 +716,7 @@ function tarjetaPolitica(p){
   if(e.participaciones>=e.meta) aviso='<p style="margin:8px 0 0">¡Cumpliste la meta de este trimestre! 🎉</p>';
   else if(e.diasRestantes<=21) aviso=`<p style="margin:8px 0 0;color:var(--naranja);font-weight:600">⏰ Quedan ${e.diasRestantes} días para el cierre y te faltan ${falta}. <a href="#calendario">Inscríbete aquí</a>.</p>`;
   else if(e.participaciones===0) aviso='<p style="margin:8px 0 0">Aún no participas este trimestre. <a href="#calendario">Mira el calendario</a> 💛</p>';
-  const faltas=e.faltasInjustificadas?`<div class="card ${e.faltasInjustificadas>=e.faltasMax-1?'naranja':''}"><h3>Tienes ${e.faltasInjustificadas} falta${e.faltasInjustificadas>1?'s':''} sin justificar este año</h3><p style="margin:6px 0 0">Al llegar a ${e.faltasMax}, coordinación revisa tu situación. Si no puedes ir a una actividad, date de baja desde la app con 24 h de anticipación.</p></div>`:'';
+  const faltas=e.faltasInjustificadas?`<div class="card ${e.faltasInjustificadas>=e.faltasMax-1?'naranja':''}"><h3>Tienes ${e.faltasInjustificadas} falta${e.faltasInjustificadas>1?'s':''} sin justificar este trimestre</h3><p style="margin:6px 0 0">Al llegar a ${e.faltasMax}, coordinación revisa tu situación. Si no puedes ir a una actividad, date de baja desde la app con 24 h de anticipación.</p></div>`:'';
   const revisar=e.porRevisar?`<div class="card"><p style="margin:0">🟡 Tienes ${e.porRevisar} baja${e.porRevisar>1?'s':''} de último momento <b>por revisar</b>. Si fue una emergencia, coordinación lo evaluará.</p></div>`:'';
   return `<div class="card"><p class="muted" style="margin:0">Participaciones · ${e.trimestre}</p>
     <div style="display:flex;align-items:baseline;gap:8px"><div class="big">${e.participaciones}</div><span class="muted">de ${e.meta}</span></div>
@@ -786,7 +786,7 @@ async function vAdminVol(id){
   <h1 style="margin-top:10px">${esc(v.nombre)}</h1><p>${v.estado==='inactivo'?'<span class="chip">Inactivo</span>':`<span class="chip ${g[2]}">${g[0]} ${g[1]}</span>`}</p>
   <div class="card">
     <div class="fila"><div><p class="muted" style="margin:0">Este trimestre</p><div class="big" style="font-size:40px">${v.participaciones}<span class="muted" style="font-size:18px"> / ${v.meta}</span></div></div>
-    <div><p class="muted" style="margin:0">Faltas (año)</p><div class="big" style="font-size:40px;color:${v.faltasInjustificadas>=v.faltasMax-1?'var(--naranja)':'var(--azul)'}">${v.faltasInjustificadas}<span class="muted" style="font-size:18px"> / ${v.faltasMax}</span></div></div></div>
+    <div><p class="muted" style="margin:0">Faltas (trimestre)</p><div class="big" style="font-size:40px;color:${v.faltasInjustificadas>=v.faltasMax-1?'var(--naranja)':'var(--azul)'}">${v.faltasInjustificadas}<span class="muted" style="font-size:18px"> / ${v.faltasMax}</span></div></div></div>
     <p class="muted" style="margin:8px 0 0">${v.justificadas} justificada(s) · ${v.porRevisar} por revisar · última asistencia: ${v.ultimaAsistencia?fechaLarga(v.ultimaAsistencia):'—'}</p></div>
   <div class="card">
     <p class="muted" style="margin:0">Correo</p><p style="margin:2px 0 8px">${esc(v.correo)}</p>
@@ -882,7 +882,7 @@ const FAQ=[
  ['Política de participación',[
   ['¿Cuántas actividades debo hacer?','Mínimo 3 actividades por trimestre (enero–marzo, abril–junio, julio–septiembre y octubre–diciembre). En Inicio ves cuántas llevas.'],
   ['¿Qué cuenta como participación?','Solo las actividades donde tu asistencia quedó registrada. Inscribirte no cuenta si luego no asistes.'],
-  ['¿Qué pasa si falto?','Si estabas inscrito/a, no asististe y no avisaste, se registra una falta. Al acumular 3 faltas sin justificar en el año, coordinación revisa tu situación y podrías ser retirado/a de la organización.'],
+  ['¿Qué pasa si falto?','Si estabas inscrito/a, no asististe y no avisaste, se registra una falta. Al acumular 3 faltas sin justificar en un mismo trimestre, coordinación revisa tu situación y podrías ser retirado/a de la organización.'],
   ['¿Cómo justifico una falta?','Dándote de baja desde la app con al menos 24 horas de anticipación. Las emergencias reales se evalúan como excepción aunque no hayas podido avisar: escríbele a tu coordinadora.'],
   ['¿Dónde veo mi historial?','En la sección Certificados, debajo de tus certificados, está "Mi historial" con cada actividad y su resultado.']]],
  ['Horas, insignias y certificados',[
