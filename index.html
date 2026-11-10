@@ -362,8 +362,8 @@ async function vInicio(){
   </div>
   ${sig?`<div class="barra"><div style="width:${pct}%"></div></div><p class="muted" style="margin:0">Te faltan <b>${sig.horas-p.horas} h</b> para la insignia <b>${sig.nombre}</b> y tu certificado de ${sig.horas} horas.</p>`:'<p>¡Desbloqueaste todas las insignias! Eres leyenda 💛</p>'}
   </div>
-  ${tarjetasPorConfirmar(p)}${tarjetaPolitica(p)}
-  ${p.feedbackPendiente.map(f=>`<a href="#feedback/${f.actividad_id}" style="text-decoration:none"><div class="card naranja"><h3>¿Cómo te fue en ${esc(f.titulo)}? 💬</h3><p style="margin:6px 0 0">Cuéntanos en 30 segundos →</p></div></a>`).join('')}
+  ${tarjetaLogros(p)}${tarjetasPorConfirmar(p)}${tarjetaPolitica(p)}
+  ${p.feedbackPendiente.map(f=>`<a href="#feedback/${f.actividad_id}" style="text-decoration:none"><div class="card naranja"><h3>¿Cómo te fue en ${esc(f.titulo)}? 💬</h3><p style="margin:6px 0 0">Elige una carita, te toma 5 segundos →</p></div></a>`).join('')}
   <h2 style="margin:22px 0 10px">Tus próximas actividades</h2>
   ${mias.length?mias.map(tarjetaAct).join(''):'<div class="card"><p style="margin:0">Aún no te inscribes en ninguna. <a href="#calendario">Mira el calendario</a>.</p></div>'}`;
 }
@@ -431,7 +431,8 @@ async function vActividad(id){
     ${a.cupos?`<div class="barra"><div style="width:${Math.min(100,a.inscritos/a.cupos*100)}%;background:var(--azul)"></div></div><p class="muted" style="margin:0">${a.inscritos} de ${a.cupos} cupos ocupados</p>`:''}
     ${a.cierre?`<p class="muted">Inscripciones hasta el ${fechaLarga(a.cierre)}</p>`:''}
   </div>
-  <div id="acciones"></div>`;
+  ${antesDeIrHTML(a)}
+  <div id="acciones"></div><div id="grupo"></div>`;
   const ac=$('#acciones');
   if(!token){ac.innerHTML='<a class="btn primario" href="#entrar">Ingresa para inscribirte</a>';return}
   let h='';
@@ -444,8 +445,9 @@ async function vActividad(id){
     if(!esHoy&&a.fecha>hoyLocal()) h+='<button class="btn borde" id="salir">Ya no podré ir</button>';
   } else if(!cerrada&&a.fecha>=hoyLocal()&&(libres===null||libres>0)) h+='<button class="btn primario" id="inscribir">¡Me apunto! 🙌</button>';
   else if(!asistio&&!esHoy) h+=`<div class="card"><p style="margin:0">${cerrada?'Las inscripciones ya cerraron.':'Ya no quedan cupos.'}</p></div>`;
-  if(inscrito||porConf) h+=botonesCalendario(a);
+  if((inscrito||porConf)&&a.fecha>=hoyLocal()) h+=botonesCalendario(a);
   ac.innerHTML=h;
+  if(inscrito||porConf||asistio) cargarGrupo(a);
   const b=(s,f)=>{const el=$(s);if(el)el.onclick=f};
   b('#inscribir',async e=>{e.target.disabled=true;try{const r=await api('inscribir',{actividad_id:a.id});toast('¡Listo, estás inscrito/a! Únete al grupo de WhatsApp y agrégala a tu calendario 💚',5000);actividades=null;await vActividad(id)}catch(err){toast(err.message);e.target.disabled=false}});
   b('#salir',()=>{if(!$('#baja'))formBaja(a,ac)});
@@ -537,6 +539,7 @@ async function vPerfil(){
   <div class="card amarillo"><h3>📲 Tenla como app</h3><p style="margin:6px 0 0">${ios?'En Safari toca el botón <b>Compartir</b> y luego <b>Agregar a pantalla de inicio</b>.':'En Chrome toca los <b>tres puntitos</b> y luego <b>Agregar a pantalla principal</b> o <b>Instalar app</b>.'}</p></div>
   <button class="btn borde" id="salir">Cerrar sesión</button>
   <a class="btn azul" href="#ayuda">❓ Preguntas frecuentes</a>
+  <button class="btn borde" onclick="mostrarInduccion(true)">👋 Ver la bienvenida otra vez</button>
   <div class="card" style="margin-top:14px"><h3>Síguenos 💛</h3>${redesHTML()}</div>
   <p style="text-align:center;margin-top:22px"><a href="#coordinacion" class="muted">Acceso coordinación</a></p>`;
   $('#salir').onclick=()=>{guardar('suyay_token',null);guardar('suyay_cache',null);token=null;perfil=null;location.hash='#entrar'};
@@ -551,6 +554,7 @@ async function vCoordinacion(param){
   if(modo==='editar'){ await adminCargar(); return vAdminForm(adminActs.find(a=>a.id===id)) }
   if(modo==='inscritos') return vAdminInscritos(id);
   if(modo==='voluntarios') return vAdminVoluntarios();
+  if(modo==='impacto') return vAdminImpacto();
   if(modo==='vol') return vAdminVol(id);
   return vAdminLista();
 }
@@ -631,6 +635,12 @@ function vAdminForm(a){
     <label>¿Qué se realizará? *</label><textarea id="f_resumen" rows="4" placeholder="Describe la actividad y su objetivo">${v('resumen')}</textarea>
     <label>¿Qué harán los voluntarios?</label><textarea id="f_que" rows="4" placeholder="Ej. Leer cuentos en grupos pequeños, armar juegos, acompañar a los niños…">${v('que_haran')}</textarea>
   </div>
+  <div class="card"><h3>🎒 Antes de ir <span class="muted" style="font-weight:500">(opcional)</span></h3>
+    <label>Qué llevar</label><textarea id="f_llevar" rows="2" placeholder="Ej. Polo de SUYAY, DNI, agua y bloqueador">${v('que_llevar')}</textarea>
+    <label>Punto de encuentro</label><input id="f_encuentro" value="${v('punto_encuentro')}" placeholder="Ej. Puerta principal del colegio, 9:45 a. m.">
+    <label>Cómo llegar</label><textarea id="f_llegar" rows="2" placeholder="Ej. Bus 201 desde la Av. Universitaria, bajar en el paradero…">${v('como_llegar')}</textarea>
+    <p class="ayuda">Los voluntarios lo ven en la actividad, justo debajo de la descripción.</p>
+  </div>
   <div class="card">
     <div class="fila"><div><label>Horas que suma *</label><input id="f_horas" type="number" min="0" max="24" step="0.5" value="${v('horas')}"></div>
     <div><label>Cupos</label><input id="f_cupos" type="number" min="0" step="1" value="${a.cupos||''}" placeholder="Sin límite"></div></div>
@@ -661,7 +671,7 @@ function vAdminForm(a){
   const enviar=async(estado,btn)=>{
     const datos={id:a.id||'',estado,titulo:$('#f_titulo').value,fecha:$('#f_fecha').value,hora_inicio:$('#f_hi').value,hora_fin:$('#f_hf').value,
       lugar:$('#f_lugar').value,resumen:$('#f_resumen').value,que_haran:$('#f_que').value,horas:$('#f_horas').value,cupos:$('#f_cupos').value,
-      cierre:$('#f_cierre').value,whatsapp:$('#f_wa').value.trim(),programa:$('#f_prog').value,coordenadas:$('#f_coord').value.trim(),radio_m:$('#f_radio').value};
+      cierre:$('#f_cierre').value,whatsapp:$('#f_wa').value.trim(),programa:$('#f_prog').value,coordenadas:$('#f_coord').value.trim(),radio_m:$('#f_radio').value,que_llevar:$('#f_llevar').value,punto_encuentro:$('#f_encuentro').value,como_llegar:$('#f_llegar').value};
     if(estado==='activa'&&!datos.resumen.trim()){toast('Cuéntales a los voluntarios qué se realizará.');return}
     if(estado==='activa'&&!Number(datos.horas)){toast('Indica cuántas horas suma la actividad.');return}
     btn.disabled=true;
@@ -900,9 +910,12 @@ const FAQ=[
  ['Horas, insignias y certificados',[
   ['¿Cómo se cuentan mis horas?','Cada actividad suma las horas indicadas en su ficha cuando tu asistencia queda registrada.'],
   ['¿Cuándo recibo mi certificado?','Cada vez que cumples 20 horas recibes una insignia nueva y un certificado en PDF por correo. También quedan guardados en "Mis certificados".'],
-  ['Necesito una constancia para mi universidad u otra institución','Pídesela a coordinación: te enviamos un certificado actualizado con todas tus horas y el detalle de tus jornadas.']]],
+  ['¿Qué es la racha?','Son los meses seguidos en los que participaste en al menos una actividad. Si un mes no asistes a ninguna, la racha vuelve a empezar. La ves en Inicio.'],
+  ['Necesito convalidar horas con mi universidad','Pregúntale a coordinación por el programa de convalidación de horas de SUYAY.']]],
  ['Comunidad y privacidad',[
-  ['¿Quién ve mis datos?','Solo el equipo de coordinación de SUYAY. Tus datos se usan únicamente para tu registro de voluntariado.'],
+  ['¿Quién ve mis datos?','Tus datos de contacto e historial solo los ve el equipo de coordinación de SUYAY. Quienes van a la misma actividad ven únicamente tu nombre y primer apellido en "Conoce a tu grupo".'],
+  ['¿Cómo encuentro a alguien para ir juntos?','Dentro de la actividad, en "¿Desde dónde vas?", escribe tu distrito. Verás desde dónde van los demás y, si marcaste que pueden escribirte, podrán contactarte por WhatsApp. Si no lo marcas, nadie ve tu número.'],
+  ['¿Cómo agrego una actividad a mi calendario?','Después de inscribirte, en la actividad toca "Agregar a Google Calendar" o "Calendario del iPhone / Outlook". Tu celular te avisará un día antes y 2 horas antes.'],
   ['¿Dónde sigo las novedades de SUYAY?','En nuestro Instagram, LinkedIn y TikTok. Encuentras los botones en Perfil y en la pantalla de ingreso.']]]
 ];
 function vAyuda(){
@@ -936,6 +949,147 @@ async function cargarEnvios(id,cont){
   try{const r=await api('adminEnvios',{id});
     cont.innerHTML=r.envios.length?r.envios.map(x=>`<div class="persona"><span><b>${esc(x.nombre||x.correo||'—')}</b><br><span class="muted">${esc(x.fecha)} · ${esc(x.tipo)}${x.detalle?' · '+esc(x.detalle):''}</span></span><span class="chip ${x.resultado==='enviado'?'v':(x.resultado==='omitido'||x.resultado==='eliminada'||x.resultado==='sin aviso'?'':'n')}">${esc(x.resultado)}</span></div>`).join(''):'<p class="muted" style="margin:0">Todavía no hay correos registrados para esta actividad.</p>'}
   catch(e){cont.innerHTML='<p class="muted">'+esc(e.message)+'</p>'}
+}
+
+/* =========================================================
+ * V7 — grupo, movilidad, antes de ir, racha, impacto, opinión, inducción
+ * ========================================================= */
+
+/* ---------- Calendario: .ics servido por el backend (funciona en iPhone y dentro de la app instalada) ---------- */
+function botonesCalendario(a){
+  return `<div class="card"><h3>📅 ¿Lo agregamos a tu calendario?</h3><p class="muted" style="margin:4px 0 0">Así tu celular te avisará un día antes y 2 horas antes.</p>
+    <a class="btn azul" href="${linkGoogleCal(a)}" target="_blank" rel="noopener">Agregar a Google Calendar</a>
+    <a class="btn borde" href="${API_URL}?ics=${encodeURIComponent(a.id)}" target="_blank" rel="noopener">Calendario del iPhone / Outlook</a></div>`;
+}
+
+/* ---------- Antes de ir ---------- */
+function antesDeIrHTML(a){
+  if(!a.que_llevar&&!a.punto_encuentro&&!a.como_llegar) return '';
+  const fila=(ic,t,v)=>v?`<div style="display:flex;gap:10px;margin-top:10px"><span style="font-size:20px">${ic}</span><div><b>${t}</b><br>${esc(v).replace(/\n/g,'<br>')}</div></div>`:'';
+  return `<div class="card amarillo"><h3>🎒 Antes de ir</h3>
+    ${fila('🧺','Qué llevar',a.que_llevar)}${fila('📌','Punto de encuentro',a.punto_encuentro)}${fila('🚌','Cómo llegar',a.como_llegar)}
+    ${a.lugar?`<a class="btn borde mini" style="margin-top:12px" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(a.lugar)}">Abrir en Google Maps</a>`:''}</div>`;
+}
+
+/* ---------- Conoce a tu grupo + ¿desde dónde vas? ---------- */
+const DISTRITOS=['Ancón','Ate','Barranco','Breña','Callao','Carabayllo','Cercado de Lima','Chaclacayo','Chorrillos','Cieneguilla','Comas','El Agustino','Independencia','Jesús María','La Molina','La Perla','La Punta','La Victoria','Lince','Los Olivos','Lurigancho-Chosica','Lurín','Magdalena del Mar','Miraflores','Pueblo Libre','Puente Piedra','Rímac','San Borja','San Isidro','San Juan de Lurigancho','San Juan de Miraflores','San Luis','San Martín de Porres','San Miguel','Santa Anita','Santiago de Surco','Surquillo','Bellavista','Carmen de la Legua','Ventanilla','Villa El Salvador','Villa María del Triunfo','Mi Perú','Pachacámac'];
+async function cargarGrupo(a){
+  const cont=$('#grupo'); if(!cont) return;
+  cont.innerHTML='<div class="card"><p class="muted" style="margin:0">Cargando tu grupo…</p></div>';
+  let g; try{g=await api('grupo',{actividad_id:a.id})}catch(e){cont.innerHTML='';return}
+  const futura=a.fecha>=hoyLocal();
+  const otros=g.personas.length-1;
+  cont.innerHTML=`
+  <details class="card" ${g.personas.length<=8?'open':''}><summary><b>👥 Conoce a tu grupo</b> <span class="muted">(${g.personas.length} ${g.personas.length===1?'persona':'personas'})</span></summary>
+    <div style="margin-top:8px">${g.personas.map(p=>`<div class="persona"><span>${esc(p.nombre)}${p.yo?' <span class="muted">(tú)</span>':''}</span></div>`).join('')}</div>
+    ${otros?'':'<p class="muted" style="margin:8px 0 0">Por ahora eres la primera persona inscrita. ¡Comparte la actividad!</p>'}
+  </details>
+  ${futura?`<div class="card"><h3>🚌 ¿Desde dónde vas?</h3><p class="muted" style="margin:4px 0 0">Opcional. Sirve para ir con alguien de tu zona.</p>
+    <label for="zona">Tu distrito o zona</label><input id="zona" list="distritos" maxlength="60" value="${esc(g.miZona)}" placeholder="Ej. San Miguel">
+    <datalist id="distritos">${DISTRITOS.map(d=>`<option value="${d}">`).join('')}</datalist>
+    <label style="display:flex;gap:10px;align-items:flex-start;font-weight:500;margin-top:12px"><input type="checkbox" id="compWa" style="width:22px;height:22px;flex:none;margin:0" ${g.comparto?'checked':''}><span>Que quienes van a esta actividad puedan escribirme por WhatsApp</span></label>
+    <button class="btn azul" id="guardarZona">Guardar</button>
+    ${g.zonas.length?`<h3 style="margin-top:16px">Ya dijeron desde dónde van</h3>${g.zonas.map(z=>`<div class="persona"><span><b>${esc(z.nombre)}</b><br><span class="muted">${esc(z.zona)}</span>${z.cerca?' <span class="chip v">tu zona</span>':''}</span>${z.whatsapp?`<a class="chip" href="${z.whatsapp}?text=${encodeURIComponent('¡Hola! Soy '+(perfil?perfil.voluntario.nombre.split(' ')[0]:'')+' de SUYAY 💛 Vi en la app que vas a '+a.titulo+' desde '+z.zona+'. ¿Vamos juntos/as?')}" target="_blank" rel="noopener">WhatsApp</a>`:''}</div>`).join('')}`:''}
+  </div>`:''}`;
+  const b=$('#guardarZona'); if(b) b.onclick=async()=>{
+    b.disabled=true;
+    try{await api('traslado',{actividad_id:a.id,zona:$('#zona').value.trim(),comparte:$('#compWa').checked});toast('¡Listo! Ya saben desde dónde vas 💛');cargarGrupo(a)}
+    catch(e){toast(e.message);b.disabled=false}
+  };
+}
+
+/* ---------- Racha mensual + contador de impacto ---------- */
+function tarjetaLogros(p){
+  const l=p.logros; if(!l||!l.actividades) return '';
+  const mes=MESES[Number(hoyLocal().slice(5,7))-1];
+  const racha=l.racha?`<div style="display:flex;align-items:center;gap:14px"><div style="font-size:44px;line-height:1">🔥</div><div><div class="big" style="font-size:34px">${l.racha} ${l.racha===1?'mes':'meses'}</div><p class="muted" style="margin:0">de racha participando</p></div></div>
+    ${l.rachaEsteMes?'<p style="margin:10px 0 0">¡Ya participaste en '+mes+'! Tu racha sigue viva 💪</p>':`<p style="margin:10px 0 0;color:var(--naranja);font-weight:600">Participa en alguna actividad este ${mes} para no perder tu racha. <a href="#calendario">Ver calendario</a></p>`}
+    ${l.mejorRacha>l.racha?`<p class="muted" style="margin:6px 0 0">Tu mejor racha: ${l.mejorRacha} meses</p>`:''}`
+    :`<p style="margin:0">🔥 Empieza una nueva racha participando este ${mes}. <a href="#calendario">Ver calendario</a></p>`;
+  return `<div class="card">${racha}
+    <div style="display:flex;gap:10px;margin-top:14px">
+      <div style="flex:1;background:var(--crema);border-radius:16px;padding:12px;text-align:center"><div class="big" style="font-size:28px">${l.actividades}</div><span class="muted">${l.actividades===1?'actividad':'actividades'} con niños y jóvenes</span></div>
+      <div style="flex:1;background:var(--crema);border-radius:16px;padding:12px;text-align:center"><div class="big" style="font-size:28px">${l.lugares}</div><span class="muted">${l.lugares===1?'comunidad visitada':'comunidades visitadas'}</span></div>
+    </div></div>`;
+}
+
+/* ---------- Opinión: una carita + comentario ---------- */
+async function vFeedback(id){
+  await Promise.all([cargarPerfil(true),cargarActividades()]);
+  const a=actividades.find(x=>x.id===id)||{titulo:'la actividad'};
+  const caras=[['😞','Mal'],['😕','Regular'],['😐','Normal'],['🙂','Bien'],['🤩','¡Increíble!']];
+  $('#app').innerHTML=`<h1>¿Cómo te fue?</h1><p class="serif">${esc(a.titulo)}</p>
+  <div class="card"><label>¿Qué tal estuvo la actividad?</label>
+  <div class="escala">${caras.map(([c,t],i)=>`<button data-v="${i+1}" aria-label="${t}">${c}</button>`).join('')}</div>
+  <label for="com">¿Algo que quieras contarnos o mejorar?</label><textarea id="com" rows="4" placeholder="Opcional"></textarea>
+  <button class="btn primario" id="enviar">Enviar</button></div>`;
+  let cara=0;
+  document.querySelector('.escala').onclick=e=>{const b=e.target.closest('button');if(!b)return;document.querySelectorAll('.escala button').forEach(x=>x.classList.remove('on'));b.classList.add('on');cara=Number(b.dataset.v)};
+  $('#enviar').onclick=async e=>{
+    if(!cara){toast('Elige una carita 🙂');return}
+    e.target.disabled=true;
+    try{await api('feedback',{actividad_id:id,cara,comentario:$('#com').value});perfil=null;toast('¡Gracias por tu opinión! 💛');location.hash='#inicio'}
+    catch(err){toast(err.message);e.target.disabled=false}
+  };
+}
+
+/* ---------- Inducción para nuevos voluntarios ---------- */
+const INDUCCION=[
+  ['💛','¡Bienvenido/a a SUYAY!','Somos una organización que impulsa la lectura y el desarrollo integral de niños y jóvenes en comunidades vulnerables del Perú. Desde hoy eres parte de esta familia.'],
+  ['📅','Así funciona la app','Mira el <b>Calendario</b>, toca una actividad y elige <b>¡Me apunto!</b>. Únete al grupo de WhatsApp y, el día de la actividad, marca tu asistencia en el lugar con un toque.'],
+  ['🤝','Con los niños y jóvenes','Llega puntual y sigue siempre las indicaciones de coordinación. Trata a todos con respeto y paciencia, no compartas fotos de los niños en tus redes personales y avisa a coordinación ante cualquier situación que te preocupe.'],
+  ['📌','Nuestro compromiso','La meta es participar en <b>al menos 3 actividades por trimestre</b>. Si no puedes ir, date de baja desde la app con <b>24 horas de anticipación</b>. Las emergencias se justifican; 3 faltas sin justificar en un trimestre se revisan con coordinación.'],
+  ['🔥','Tus logros','Cada asistencia suma horas. Cada <b>20 horas</b> desbloqueas una insignia y recibes tu certificado. Participa cada mes para mantener tu racha. ¿Dudas? Revisa las Preguntas frecuentes en tu Perfil.']
+];
+function mostrarInduccion(desdePerfil){
+  if($('.modal.induccion')) return;
+  let i=0;
+  const m=document.createElement('div');m.className='modal induccion';
+  const pintar=()=>{
+    const [ic,t,txt]=INDUCCION[i];
+    m.innerHTML=`<div style="max-width:420px"><div style="font-size:64px">${ic}</div><h2>${t}</h2><p style="font-size:17px;line-height:1.5">${txt}</p>
+      <div style="display:flex;justify-content:center;gap:8px;margin:16px 0">${INDUCCION.map((_,k)=>`<span style="width:${k===i?22:8}px;height:8px;border-radius:8px;background:${k===i?'var(--amarillo)':'rgba(244,244,238,.4)'}"></span>`).join('')}</div>
+      <button class="btn primario" id="indSig" style="max-width:280px;margin:0 auto">${i<INDUCCION.length-1?'Siguiente':'¡Empezar!'}</button>
+      ${i<INDUCCION.length-1?'<button class="btn" id="indSaltar" style="background:transparent;color:var(--crema);max-width:280px;margin:6px auto 0">Saltar</button>':''}</div>`;
+    m.querySelector('#indSig').onclick=()=>{if(i<INDUCCION.length-1){i++;pintar()}else cerrar()};
+    const s=m.querySelector('#indSaltar'); if(s) s.onclick=cerrar;
+  };
+  const cerrar=()=>{m.remove();guardar('suyay_induccion','1');if(!desdePerfil&&token){api('induccionVista').catch(()=>{});if(perfil)perfil.induccion=true}};
+  pintar();document.body.appendChild(m);
+}
+vInicio=(orig=>async function(){await orig.apply(this,arguments);if(perfil&&!perfil.induccion&&!leer('suyay_induccion'))mostrarInduccion()})(vInicio);
+
+/* ---------- Coordinación: panel de impacto ---------- */
+function tabsAdmin(activa){return `<div class="seg" style="margin-bottom:14px"><button onclick="location.hash='#coordinacion'" class="${activa==='act'?'on':''}">Actividades</button><button onclick="location.hash='#coordinacion/voluntarios'" class="${activa==='vol'?'on':''}">Voluntarios</button><button onclick="location.hash='#coordinacion/impacto'" class="${activa==='imp'?'on':''}">Impacto</button></div>`}
+let impactoSel=0;
+async function vAdminImpacto(){
+  const r=await api('adminImpacto');
+  const caraDe=n=>n==null?'—':['😞','😕','😐','🙂','🤩'][Math.max(0,Math.min(4,Math.round(n)-1))];
+  const pintar=()=>{
+    const p=r.periodos[impactoSel];
+    const kpi=(n,t)=>`<div style="background:var(--crema);border-radius:16px;padding:14px;text-align:center"><div class="big" style="font-size:30px">${n}</div><span class="muted">${t}</span></div>`;
+    $('#cuerpo').innerHTML=`
+    <div class="card azul"><p class="serif" style="margin:0;opacity:.85">${esc(p.nombre)}</p><h2 style="font-size:30px;margin-top:4px">${p.horas.toLocaleString('es-PE')} horas de voluntariado</h2><p style="margin:6px 0 0">en ${p.actividades} ${p.actividades===1?'actividad realizada':'actividades realizadas'}</p></div>
+    <div class="card"><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      ${kpi(p.voluntarios,'voluntarios participaron')}${kpi(p.asistencias,'asistencias')}
+      ${kpi(p.lugares,'comunidades / lugares')}${kpi(p.nuevos,'voluntarios nuevos')}
+      ${kpi(p.tasaAsistencia==null?'—':p.tasaAsistencia+'%','de inscritos asistió')}${kpi(p.satisfaccion==null?'—':caraDe(p.satisfaccion)+' '+p.satisfaccion,'satisfacción ('+p.opiniones+' opiniones)')}
+    </div>${p.canceladas?`<p class="muted" style="margin:10px 0 0">${p.canceladas} actividad(es) cancelada(s) en este periodo.</p>`:''}</div>
+    ${p.programas.length>1||(p.programas[0]&&p.programas[0].programa!=='Sin programa')?`<div class="card"><h3>Por programa</h3>${p.programas.map(x=>`<div class="persona"><span><b>${esc(x.programa)}</b><br><span class="muted">${x.actividades} actividad(es) · ${x.asistencias} asistencias</span></span><b>${x.horas} h</b></div>`).join('')}</div>`:''}
+    <button class="btn azul" id="copiarKpi">Copiar resumen para reportes</button>`;
+    $('#copiarKpi').onclick=()=>{
+      const t=`Impacto SUYAY · ${p.nombre}\n• ${p.horas} horas de voluntariado\n• ${p.actividades} actividades realizadas en ${p.lugares} comunidades/lugares\n• ${p.voluntarios} voluntarios participaron (${p.asistencias} asistencias)\n• ${p.nuevos} voluntarios nuevos`+(p.tasaAsistencia!=null?`\n• ${p.tasaAsistencia}% de los inscritos asistió`:'')+(p.satisfaccion!=null?`\n• Satisfacción promedio: ${p.satisfaccion}/5 (${p.opiniones} opiniones)`:'')+`\n• ${r.activos} voluntarios activos en la base`;
+      navigator.clipboard.writeText(t).then(()=>toast('Resumen copiado'),()=>toast('No se pudo copiar'));
+    };
+  };
+  $('#app').innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center"><h1>Coordinación</h1><a href="#inicio" class="muted">Ver la app ›</a></div><div class="garabato"></div>
+  ${tabsAdmin('imp')}
+  <div class="seg" id="per">${r.periodos.map((p,i)=>`<button data-i="${i}" class="${i===impactoSel?'on':''}">${['Trimestre','Año','Total'][i]}</button>`).join('')}</div>
+  <div id="cuerpo"></div>
+  <div class="card"><h3>💬 Últimos comentarios</h3>${r.comentarios.length?r.comentarios.map(c=>`<div class="persona" style="align-items:flex-start"><span><span class="muted">${esc(c.actividad)} · ${fechaLarga(c.fecha)}</span><br>${esc(c.comentario)}</span><span style="font-size:22px">${caraDe(c.cara)}</span></div>`).join(''):'<p class="muted" style="margin:0">Todavía no hay comentarios.</p>'}</div>
+  <p class="ayuda">Base: ${r.registrados} voluntarios registrados, ${r.activos} activos. Solo cuentan actividades ya realizadas con asistencia registrada.</p>`;
+  $('#per').onclick=e=>{const b=e.target.closest('button');if(!b)return;impactoSel=Number(b.dataset.i);document.querySelectorAll('#per button').forEach(x=>x.classList.toggle('on',x===b));pintar()};
+  pintar();
 }
 
 if(RUTA_INICIAL){ history.replaceState(null,'',location.pathname+'#'+RUTA_INICIAL); router(); }
