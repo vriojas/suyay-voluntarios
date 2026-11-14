@@ -1092,6 +1092,43 @@ async function vAdminImpacto(){
   pintar();
 }
 
+/* ---------- Coordinación: pasar lista (reemplaza la hoja de firmas) ---------- */
+async function vAdminInscritos(id){
+  if(!adminActs) await adminCargar();
+  const a=adminActs.find(x=>x.id===id)||{titulo:id};
+  const [r,vs]=await Promise.all([api('adminInscritos',{id}),api('adminVoluntarios').catch(()=>({voluntarios:[]}))]);
+  const porNombre={};(vs.voluntarios||[]).forEach(v=>porNombre[v.nombre]=v.id);
+  r.inscritos.forEach(p=>p.id=p.id||porNombre[p.nombre]||'');
+  const wa=c=>{let n=String(c).replace(/\D/g,'');if(n.length===9)n='51'+n;return n?'https://wa.me/'+n:''};
+  const yaPaso=a.fecha&&a.fecha<=hoyLocal();
+  const pend=r.inscritos.filter(p=>!p.asistio);
+  $('#app').innerHTML=`
+  <a href="#coordinacion">‹ Volver</a>
+  <h1 style="margin-top:10px">${esc(a.titulo)}</h1><p class="muted">${a.fecha?fechaLarga(a.fecha):''} · ${r.inscritos.length} persona(s) · ${r.inscritos.length-pend.length} con asistencia</p>
+  ${yaPaso&&pend.length?`<div class="card amarillo"><h3>✍️ Pasar lista</h3><p style="margin:6px 0 0">Marca a quienes estuvieron presentes y toca el botón. Es igual que la hoja de firmas.</p>
+    <label style="display:flex;gap:10px;align-items:center;font-weight:600;margin-top:12px"><input type="checkbox" id="todos" style="width:22px;height:22px;margin:0">Seleccionar a todos</label></div>`:''}
+  <div class="card">${r.inscritos.length?r.inscritos.map(p=>`<div class="persona">
+    <label style="display:flex;gap:10px;align-items:center;flex:1;margin:0;font-weight:500">${yaPaso&&!p.asistio&&p.id?`<input type="checkbox" class="lista" value="${esc(p.id)}" style="width:22px;height:22px;flex:none;margin:0">`:''}<span><b>${esc(p.nombre)}</b><br><span class="muted">${esc(p.celular)}</span></span></label>
+    <span>${p.asistio?'<span class="chip v">✓ Asistió</span>':''}${p.sinInscripcion?'<span class="chip">sin inscripción</span>':''}
+    ${wa(p.celular)?`<a href="${wa(p.celular)}" target="_blank" rel="noopener" class="chip">WhatsApp</a>`:''}</span></div>`).join(''):'<p style="margin:0">Todavía no hay inscritos.</p>'}</div>
+  ${yaPaso&&pend.length?'<button class="btn primario" id="marcarLista">Marcar asistencia de los seleccionados</button>':''}
+  ${r.inscritos.length?'<button class="btn azul" id="copiar">Copiar lista de nombres</button>':''}
+  <p class="ayuda">Estos datos son privados: úsalos solo para coordinar la actividad. ¿Alguien fue sin inscribirse? Márcalo desde Voluntarios › su nombre.</p>
+  <h2 style="margin:20px 0 10px">Correos enviados</h2><div class="card" id="envios"><p class="muted" style="margin:0">Cargando…</p></div>`;
+  cargarEnvios(id,$('#envios'));
+  const b=$('#copiar'); if(b) b.onclick=()=>{navigator.clipboard.writeText(r.inscritos.map((p,i)=>`${i+1}. ${p.nombre}`).join('\n'));toast('Lista copiada')};
+  const t=$('#todos'); if(t) t.onchange=()=>document.querySelectorAll('.lista').forEach(c=>c.checked=t.checked);
+  const m=$('#marcarLista'); if(m) m.onclick=async()=>{
+    const ids=[...document.querySelectorAll('.lista:checked')].map(c=>c.value);
+    if(!ids.length){toast('Marca al menos a una persona');return}
+    m.disabled=true;let ok=0,cert=0,err=0;
+    for(const vid of ids){m.textContent=`Marcando ${ok+err+1} de ${ids.length}…`;
+      try{const x=await api('adminMarcarAsistencia',{actividad_id:id,voluntario_id:vid});ok++;if(x.nuevosCertificados&&x.nuevosCertificados.length)cert++}catch(e){err++}}
+    toast(`✅ ${ok} asistencia(s) marcada(s)`+(cert?` · ${cert} certificado(s) nuevo(s) 🎉`:'')+(err?` · ${err} con error`:''));
+    vAdminInscritos(id);
+  };
+}
+
 if(RUTA_INICIAL){ history.replaceState(null,'',location.pathname+'#'+RUTA_INICIAL); router(); }
 else if(!location.hash) location.hash=token?'#inicio':'#entrar'; else router();
 </script>
